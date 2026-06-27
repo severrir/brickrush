@@ -160,7 +160,11 @@
     const btn = slot.querySelector('.nav-account__btn');
     btn.addEventListener('click', (e) => { e.stopPropagation(); const open = acc.classList.toggle('open'); btn.setAttribute('aria-expanded', String(open)); });
     document.addEventListener('click', () => acc.classList.remove('open'));
-    slot.querySelector('[data-logout]').addEventListener('click', () => { window.Auth.logout(); location.href = 'index.html'; });
+    slot.querySelector('[data-logout]').addEventListener('click', async (e) => {
+      e.preventDefault();
+      await window.Auth.logout();   // wait for Supabase sign-out to clear the session
+      location.href = 'index.html';
+    });
   }
 
   // QA mode (?audit): force all entrance animations to final state for screenshots

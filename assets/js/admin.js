@@ -51,7 +51,7 @@
     $('#demo-banner').classList.toggle('hidden', Store.live);
     await renderDemand();
     await load();
-    $('#admin-logout').addEventListener('click', () => { Auth.logoutAdmin(); location.reload(); });
+    $('#admin-logout').addEventListener('click', async () => { await Auth.logoutAdmin(); location.href = 'index.html'; });
     $('#admin-search').addEventListener('input', (e) => { query = e.target.value.toLowerCase(); renderQueue(); });
     $$('.filter-tabs button').forEach(b => b.addEventListener('click', () => {
       filter = b.dataset.filter; $$('.filter-tabs button').forEach(x => x.classList.remove('active')); b.classList.add('active'); renderQueue();

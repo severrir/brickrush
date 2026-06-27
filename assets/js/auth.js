@@ -53,7 +53,7 @@
     },
 
     async logout() {
-      if (live()) { try { await window.SB.auth.signOut(); } catch (e) {} }
+      if (live()) { try { await window.SB.auth.signOut({ scope: 'local' }); } catch (e) {} }
       sessionStorage.removeItem(USER_KEY);
     },
 
@@ -75,7 +75,7 @@
       if (ok) { sessionStorage.setItem(ADMIN_KEY, 'true'); localStorage.setItem(OWNER_KEY, '1'); }
       return ok;
     },
-    logoutAdmin() { sessionStorage.removeItem(ADMIN_KEY); localStorage.removeItem(OWNER_KEY); this.logout(); },
+    async logoutAdmin() { sessionStorage.removeItem(ADMIN_KEY); localStorage.removeItem(OWNER_KEY); await this.logout(); },
   };
 
   window.Auth = Auth;
