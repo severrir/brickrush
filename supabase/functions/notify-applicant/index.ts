@@ -8,7 +8,8 @@
 // (SUPABASE_URL and SUPABASE_ANON_KEY are provided by Supabase automatically.)
 // =========================================================================
 
-const BOT_TOKEN = Deno.env.get("DISCORD_BOT_TOKEN") ?? "";
+// tolerate a stray trailing comma in the secret name (a common paste mistake)
+const BOT_TOKEN = (Deno.env.get("DISCORD_BOT_TOKEN") ?? Deno.env.get("DISCORD_BOT_TOKEN,") ?? "").trim();
 const OWNER_ID = "903304467531845644"; // your Discord id
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const ANON = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
