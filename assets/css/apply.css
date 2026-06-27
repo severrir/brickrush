@@ -50,6 +50,18 @@
 .role-opt p { font-size: 0.88rem; color: var(--text-muted); flex: 1; }
 .role-opt__skills { display: flex; flex-wrap: wrap; gap: 0.35rem; }
 
+/* demand badge + most-wanted outline on the role picker */
+.role-opt { padding-top: 2.7rem; }
+.role-opt__badge { position: absolute; top: 1rem; left: 1.3rem; font-family: var(--font-mono); font-size: 0.62rem;
+  letter-spacing: 0.12em; text-transform: uppercase; padding: 0.34em 0.7em; border-radius: var(--r-pill); font-weight: 700; }
+.role-opt__badge.tag--hot { background: rgba(255,46,110,0.16); border: 1px solid rgba(255,46,110,0.6); color: #FF6E9C;
+  box-shadow: 0 0 16px rgba(255,46,110,0.25); }
+.role-opt__badge.tag--closed { background: var(--surface-3); border: 1px solid var(--line-strong); color: var(--text-muted); }
+.role-opt--hot { border-color: rgba(255,46,110,0.55); box-shadow: var(--glow-pink); }
+.role-opt--hot:hover { border-color: var(--magenta); }
+.role-opt--closed { opacity: 0.5; }
+.role-opt--closed:hover { transform: none; border-color: var(--line); }
+
 /* ---- Login gate ---- */
 .login-card { max-width: 460px; margin-inline: auto; padding: 2.4rem; text-align: center; }
 .login-card .brand-mark { width: 70px; margin: 0 auto 1.2rem; }

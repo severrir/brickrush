@@ -22,17 +22,27 @@
   const escapeHtml = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
   /* ---------- Roles ---------- */
-  function renderRoles() {
+  async function renderRoles() {
+    let demand = {};
+    try { demand = await Store.getDemand(); } catch (e) {}
     const wrap = $('#role-select');
-    wrap.innerHTML = ROLES.map(r => `
-      <button type="button" class="role-opt" data-role="${r.id}">
+    wrap.innerHTML = ROLES.map(r => {
+      const d = demand[r.id] || 'open';
+      const badge = d === 'most_wanted'
+        ? '<span class="role-opt__badge tag--hot">✳ Most wanted</span>'
+        : d === 'closed' ? '<span class="role-opt__badge tag--closed">Closed</span>' : '';
+      const cls = 'role-opt' + (d === 'most_wanted' ? ' role-opt--hot' : '') + (d === 'closed' ? ' role-opt--closed' : '');
+      return `
+      <button type="button" class="${cls}" data-role="${r.id}"${d === 'closed' ? ' disabled' : ''}>
         <span class="role-opt__check"></span>
+        ${badge}
         <span class="role-opt__ico">${r.icon}</span>
         <h3>${r.label}</h3>
         <p>${r.blurb}</p>
         <div class="role-opt__skills">${r.skills.map(s => `<span class="tag">${s}</span>`).join('')}</div>
-      </button>`).join('');
-    $$('.role-opt', wrap).forEach(b => b.addEventListener('click', () => selectRole(b.dataset.role)));
+      </button>`;
+    }).join('');
+    $$('.role-opt', wrap).forEach(b => b.addEventListener('click', () => { if (!b.disabled) selectRole(b.dataset.role); }));
   }
   function selectRole(id) {
     state.role = id;
@@ -227,7 +237,7 @@
       location.replace('login.html?return=' + encodeURIComponent('apply.html' + (location.hash || '')));
       return;
     }
-    renderRoles();
+    await renderRoles();
     wirePills('#exp-group', 'experience', '#exp-error');
     wirePills('#avail-group', 'availability', '#avail-error');
 
