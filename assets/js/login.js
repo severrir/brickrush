@@ -26,14 +26,11 @@
   }
 
   document.addEventListener('DOMContentLoaded', async () => {
-    // Returning from a Discord redirect?
-    const returned = await Auth.handleRedirect();
-    if (returned) { showBusy('Logged in'); if (window.Sound) window.Sound.play('accept'); return go(); }
-    // Already logged in? Bounce straight through.
-    if (Auth.isLoggedIn()) return go();
+    await Auth.init();   // finishes an OAuth redirect if we just came back from Discord
+    if (Auth.isLoggedIn()) { showBusy('Logged in'); if (window.Sound) window.Sound.play('accept'); return go(); }
 
     const demoNote = document.getElementById('demo-note');
-    if (demoNote && !Auth.realDiscord()) demoNote.textContent = 'Demo mode — add a Discord Client ID in config.js for real login.';
+    if (demoNote && !Auth.live()) demoNote.textContent = 'Demo mode — add Supabase keys in config.js for real Discord login.';
 
     const btn = document.getElementById('discord-login');
     btn.addEventListener('click', async () => {

@@ -15,8 +15,11 @@
   /* ---- Supabase client (only if configured) ---- */
   let sb = null;
   if (CFG.isLive && window.supabase) {
-    sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+    sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+    });
   }
+  window.SB = sb;   // shared client for auth.js (login) — null in demo mode
 
   /* ---- Local-demo helpers ---- */
   const readLocal = (k, fallback) => {

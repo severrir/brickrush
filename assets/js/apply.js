@@ -7,12 +7,6 @@
   const ROLES = window.BRICKRUSH_ROLES;
   const Store = window.Store, Auth = window.Auth, CFG = window.BRICKRUSH_CONFIG;
 
-  // ---- Login gate: required to apply ----
-  if (Auth.requireLogin() && !Auth.isLoggedIn()) {
-    location.replace('login.html?return=' + encodeURIComponent('apply.html' + (location.hash || '')));
-    return;
-  }
-
   const state = {
     step: 1, role: null,
     full_name: '', roblox_username: '', discord_username: '', discord_id: '',
@@ -216,6 +210,12 @@
 
   /* ---------- Init ---------- */
   document.addEventListener('DOMContentLoaded', async () => {
+    await Auth.init();   // load the session before deciding anything
+    // Login is required to apply
+    if (Auth.requireLogin() && !Auth.isLoggedIn()) {
+      location.replace('login.html?return=' + encodeURIComponent('apply.html' + (location.hash || '')));
+      return;
+    }
     renderRoles();
     wirePills('#exp-group', 'experience', '#exp-error');
     wirePills('#avail-group', 'availability', '#avail-error');

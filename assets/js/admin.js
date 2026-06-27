@@ -28,6 +28,21 @@
     });
   }
 
+  /* Live mode gate: sign in with the owner Discord account. */
+  function showDiscordGate(user) {
+    $('#admin-gate').classList.remove('hidden');
+    $('#admin-dash').classList.add('hidden');
+    const gate = $('#admin-gate');
+    gate.querySelector('h2').textContent = 'Owner access';
+    gate.querySelector('p').textContent = user
+      ? 'This panel is for the studio owner only.'
+      : 'Sign in with the owner Discord account to manage applications.';
+    $('#admin-gate-form').innerHTML = user
+      ? `<div class="err" style="color:var(--amber);display:block;margin-bottom:1rem">Signed in as ${esc(user.username)} — that's not the owner account.</div>
+         <a class="btn btn--ghost btn--block" href="index.html">Back to site</a>`
+      : `<a class="btn btn--discord btn--block" href="login.html?return=admin.html">Sign in with Discord</a>`;
+  }
+
   /* ---------- Boot dashboard ---------- */
   async function boot() {
     $('#admin-gate').classList.add('hidden');
@@ -223,8 +238,16 @@
     return Math.floor(s / 86400) + 'd ago';
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    // The owner's device (or the real owner signed in with Discord) opens straight in.
-    if (Auth.isAdmin() || (Auth.isOwner && Auth.isOwner())) boot(); else showGate();
+  document.addEventListener('DOMContentLoaded', async () => {
+    await Auth.init();
+    if (Auth.live()) {
+      // Real backend: only the owner's signed-in Discord account gets in.
+      const u = Auth.getUser();
+      if (u && u.id === CFG.adminDiscordId) boot();
+      else showDiscordGate(u);
+    } else {
+      // Demo: password (and this device stays unlocked once entered).
+      if (Auth.isAdmin() || (Auth.isOwner && Auth.isOwner())) boot(); else showGate();
+    }
   });
 })();

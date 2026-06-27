@@ -166,7 +166,8 @@
   // QA mode (?audit): force all entrance animations to final state for screenshots
   if (/[?&]audit\b/.test(location.search)) document.documentElement.classList.add('audit');
 
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('DOMContentLoaded', async () => {
+    if (window.Auth && window.Auth.init) { try { await window.Auth.init(); } catch (e) {} }
     wireLinks(); nav(); reveals(); counters(); soundToggle(); cursor(); authNav();
   });
 })();
