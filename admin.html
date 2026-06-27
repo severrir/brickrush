@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — BRICK RUSH</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="assets/img/logo.png" />
+  <link rel="stylesheet" href="assets/css/base.css" />
+  <link rel="stylesheet" href="assets/css/components.css" />
+  <link rel="stylesheet" href="assets/css/admin.css" />
+</head>
+<body>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+    <linearGradient id="ig" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FF2E6E"/><stop offset="0.5" stop-color="#7C5CFF"/><stop offset="1" stop-color="#2BD2FF"/>
+    </linearGradient>
+  </defs></svg>
+
+  <nav class="nav scrolled">
+    <div class="nav__inner">
+      <a class="brand" href="index.html"><img src="assets/img/logo.png" alt="" />Brick<b>Rush</b></a>
+      <ul class="nav__links">
+        <li><a href="index.html">Site</a></li>
+        <li><a href="apply.html">Apply</a></li>
+      </ul>
+      <div class="nav__right">
+        <button class="sound-toggle" aria-label="Toggle sound"><span class="bar"></span><span class="bar"></span><span class="bar"></span></button>
+        <button class="btn btn--ghost hidden" id="admin-logout">Log out</button>
+        <button class="nav__burger" aria-label="Menu"><span></span></button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="admin-main">
+    <div class="admin-shell">
+
+      <!-- GATE -->
+      <section class="card admin-gate" id="admin-gate">
+        <div class="lock">🔒</div>
+        <h2>Owner access</h2>
+        <p>This panel is for the studio owner. Enter your admin password to continue.</p>
+        <form id="admin-gate-form">
+          <div class="field">
+            <input class="input" id="admin-pass" type="password" placeholder="Admin password" autocomplete="current-password" />
+          </div>
+          <button class="btn btn--primary btn--block" type="submit">Unlock dashboard</button>
+          <div class="err" id="gate-err"></div>
+        </form>
+        <p class="mono" style="font-size:0.7rem;color:var(--text-faint);margin-top:1.4rem">
+          Locked to Discord ID 903304467531845644 once real login is wired.
+        </p>
+      </section>
+
+      <!-- DASHBOARD -->
+      <section class="hidden" id="admin-dash">
+        <div class="demo-banner hidden" id="demo-banner">
+          ✳ <span><b>Demo mode</b> — data is stored locally in this browser. Add Supabase keys in <b>config.js</b> to go live across devices.</span>
+        </div>
+
+        <div class="admin-top">
+          <div>
+            <span class="eyebrow">Dashboard</span>
+            <h1>Applications</h1>
+            <p class="lead">Review, accept, reject, and steer demand.</p>
+          </div>
+          <button class="btn btn--ghost" id="export-csv">⬇ Export CSV</button>
+        </div>
+
+        <!-- Stats -->
+        <div class="stat-grid">
+          <div class="card stat"><div class="n" id="stat-total">0</div><div class="l">Total</div></div>
+          <div class="card stat stat--pending"><div class="n" id="stat-pending">0</div><div class="l">Pending</div></div>
+          <div class="card stat stat--accepted"><div class="n" id="stat-accepted">0</div><div class="l">Accepted</div></div>
+          <div class="card stat stat--rejected"><div class="n" id="stat-rejected">0</div><div class="l">Rejected</div></div>
+        </div>
+
+        <!-- Demand -->
+        <div class="card demand-panel">
+          <h3>✳ Most wanted</h3>
+          <p>Set live demand for each role. This updates the badges on the public site instantly.</p>
+          <div id="demand-rows"></div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="admin-toolbar">
+          <input class="input admin-search" id="admin-search" type="search" placeholder="Search name, Discord, Roblox, role…" />
+          <div class="filter-tabs">
+            <button class="active" data-filter="all">All</button>
+            <button data-filter="pending">Pending</button>
+            <button data-filter="accepted">Accepted</button>
+            <button data-filter="rejected">Rejected</button>
+          </div>
+        </div>
+
+        <!-- Queue -->
+        <div class="queue" id="queue"></div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Accept / reject message modal -->
+  <div class="modal-overlay hidden" id="decide-modal">
+    <div class="modal">
+      <h3 id="decide-title">Decision</h3>
+      <p class="muted" id="decide-sub" style="font-size:0.88rem;margin-bottom:1.2rem"></p>
+      <div class="field">
+        <label for="decide-msg">Message to applicant <span style="color:var(--text-faint);font-weight:400">(optional — they'll see this on their status)</span></label>
+        <textarea class="textarea" id="decide-msg" placeholder="e.g. Loved your portfolio — hop in the Discord and we'll set up your interview."></textarea>
+      </div>
+      <div class="modal__actions">
+        <button class="btn btn--ghost" id="decide-cancel" data-no-sound>Cancel</button>
+        <button class="btn btn--primary" id="decide-confirm" data-no-sound>Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/sound.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script src="assets/js/admin.js"></script>
+</body>
+</html>

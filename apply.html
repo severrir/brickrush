@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Apply — BRICK RUSH | Join the Roblox studio</title>
+  <meta name="description" content="Apply to join the BRICK RUSH founding team. Pick your role — Scripter, Modeler & Animator, or UI/UX Designer — log in with Discord, and tell us what you build." />
+  <meta name="theme-color" content="#0B0C16" />
+  <link rel="canonical" href="https://severrir.github.io/brickrush/apply.html" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="BRICK RUSH" />
+  <meta property="og:title" content="Apply to BRICK RUSH" />
+  <meta property="og:description" content="Join the founding team of a new Roblox studio. Scripters, modelers, animators & UI designers." />
+  <meta property="og:image" content="https://severrir.github.io/brickrush/assets/img/logo.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="icon" href="assets/img/logo.png" />
+  <link rel="apple-touch-icon" href="assets/img/logo.png" />
+  <link rel="stylesheet" href="assets/css/base.css" />
+  <link rel="stylesheet" href="assets/css/components.css" />
+  <link rel="stylesheet" href="assets/css/apply.css" />
+</head>
+<body>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+    <linearGradient id="ig" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FF2E6E"/><stop offset="0.5" stop-color="#7C5CFF"/><stop offset="1" stop-color="#2BD2FF"/>
+    </linearGradient>
+  </defs></svg>
+
+  <!-- ===== NAV ===== -->
+  <nav class="nav scrolled">
+    <div class="nav__inner">
+      <a class="brand" href="index.html"><img src="assets/img/logo.png" alt="" />Brick<b>Rush</b></a>
+      <ul class="nav__links">
+        <li><a href="index.html#build">What we build</a></li>
+        <li><a href="index.html#roles">Roles</a></li>
+        <li><a href="index.html#revshare">Rev-share</a></li>
+        <li><a href="index.html#faq">FAQ</a></li>
+      </ul>
+      <div class="nav__right">
+        <button class="sound-toggle" aria-label="Toggle sound"><span class="bar"></span><span class="bar"></span><span class="bar"></span></button>
+        <span data-auth-slot></span>
+        <a class="btn btn--ghost nav__cta-desktop" data-discord href="#">Discord</a>
+        <button class="nav__burger" aria-label="Menu"><span></span></button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="apply-main">
+    <div class="apply-shell">
+
+      <div class="apply-head">
+        <span class="eyebrow">Application</span>
+        <h1>Join Brick Rush</h1>
+        <p class="lead">A few quick steps. We read every word — make it count.</p>
+      </div>
+
+      <!-- Stepper -->
+      <div class="stepper">
+        <div class="stepper__node active" data-step="1"><span class="stepper__dot">1</span><span class="stepper__label">Role</span></div>
+        <span class="stepper__line"></span>
+        <div class="stepper__node" data-step="2"><span class="stepper__dot">2</span><span class="stepper__label">Rev-share</span></div>
+        <span class="stepper__line"></span>
+        <div class="stepper__node" data-step="3"><span class="stepper__dot">3</span><span class="stepper__label">You</span></div>
+        <span class="stepper__line"></span>
+        <div class="stepper__node" data-step="4"><span class="stepper__dot">4</span><span class="stepper__label">Skills</span></div>
+        <span class="stepper__line"></span>
+        <div class="stepper__node" data-step="5"><span class="stepper__dot">5</span><span class="stepper__label">Review</span></div>
+      </div>
+
+      <div id="form-wrap">
+
+        <!-- STEP 1: ROLE -->
+        <section class="step active" data-step="1">
+          <h2>What do you build?</h2>
+          <p class="lead">Pick the department you want to join. Modeling and animation share one team.</p>
+          <div class="role-select" id="role-select"><!-- rendered by apply.js --></div>
+          <div class="step-nav">
+            <span class="spacer"></span>
+            <button class="btn btn--primary" id="s1-next" disabled>Continue →</button>
+          </div>
+        </section>
+
+        <!-- STEP 2: REVENUE SHARE (required read) -->
+        <section class="step" data-step="2">
+          <h2>How you get paid</h2>
+          <p class="lead">Brick Rush runs on revenue share. Here's exactly how it works — a 30-second read before you apply.</p>
+
+          <div class="rs-flow">
+            <div class="rs-card"><div class="rs-num">01 · DEPARTMENTS</div><h4>Departments hold the pool</h4><p>Each department — Scripting, Visual (modeling + animation), and UI/UX — is allocated a share of a game's revenue.</p></div>
+            <div class="rs-card"><div class="rs-num">02 · POINTS</div><h4>Work earns points</h4><p>Difficulty decides reward. An easy system ≈ <span class="rs-big gradient-text">2</span> pts; a big, hard one ≈ <span class="rs-big gradient-text">10</span> pts.</p></div>
+            <div class="rs-card"><div class="rs-num">03 · PAYOUT</div><h4>Points become payout</h4><p>Points convert to real revenue — around <span class="rs-big gradient-text">100</span> pts ≈ <span class="rs-big gradient-text">2%</span> of a game's revenue.</p></div>
+          </div>
+
+          <div class="rs-example">
+            <svg class="ico" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg>
+            <p>Example: as a <b>Scripter</b> (dept ≈ 30%), you build a hard combat system → <b>10 pts</b>. Across a project you reach <b>~100 pts</b> → about <b>2%</b> of that game's revenue, paid from your department's share.</p>
+          </div>
+
+          <label class="check-row" id="revshare-row" style="margin-top:1.4rem">
+            <input type="checkbox" id="revshare-ack" />
+            <span>I understand how departments, points, and revenue share work. <span class="req">*</span></span>
+          </label>
+
+          <div class="step-nav">
+            <button class="btn btn--ghost" id="s2-back">← Back</button>
+            <button class="btn btn--primary" id="s2-next">Continue →</button>
+          </div>
+        </section>
+
+        <!-- STEP 3: IDENTITY -->
+        <section class="step" data-step="3">
+          <h2>Who are you?</h2>
+          <p class="lead">A few details so we can reach you.</p>
+
+          <div class="signed-in-row" id="signed-in-row" style="display:none">
+            <span class="dot"></span><span>Signed in as <b id="signed-in-name"></b> via Discord</span>
+          </div>
+
+          <div class="field">
+            <label for="f-name">Full name <span class="req">*</span></label>
+            <input class="input" id="f-name" type="text" placeholder="Your name" autocomplete="name" />
+            <span class="error">Please enter your name.</span>
+          </div>
+          <div class="field">
+            <label for="f-roblox">Roblox username <span class="req">*</span></label>
+            <input class="input" id="f-roblox" type="text" placeholder="e.g. brickBuilder" />
+            <span class="error">Enter your Roblox username.</span>
+          </div>
+          <div class="field">
+            <label for="f-discord">Discord username <span class="req">*</span></label>
+            <input class="input" id="f-discord" type="text" placeholder="e.g. yourname" />
+            <span class="error">Enter your Discord username.</span>
+          </div>
+          <label class="check-row" id="age-row">
+            <input type="checkbox" id="age-ok" />
+            <span>I confirm I’m 13 or older, and I can communicate in English. <span class="req">*</span></span>
+          </label>
+
+          <div class="step-nav">
+            <button class="btn btn--ghost" id="s3-back">← Back</button>
+            <button class="btn btn--primary" id="s3-next">Continue →</button>
+          </div>
+        </section>
+
+        <!-- STEP 4: SKILLS -->
+        <section class="step" data-step="4">
+          <h2>Show us your work.</h2>
+          <p class="lead">A portfolio is required — it’s how we judge skill over résumé.</p>
+
+          <div class="field">
+            <label>Experience level <span class="req">*</span></label>
+            <div class="pill-group" id="exp-group">
+              <button type="button" class="pill-opt" data-val="Beginner">Beginner</button>
+              <button type="button" class="pill-opt" data-val="Intermediate">Intermediate</button>
+              <button type="button" class="pill-opt" data-val="Advanced">Advanced</button>
+              <button type="button" class="pill-opt" data-val="Pro">Pro</button>
+            </div>
+            <span class="error" id="exp-error" style="display:none">Pick your level.</span>
+          </div>
+
+          <div class="field">
+            <label for="f-portfolio">Portfolio / showcase link <span class="req">*</span></label>
+            <input class="input" id="f-portfolio" type="url" placeholder="https://… (Roblox game, ArtStation, GitHub, Figma)" />
+            <span class="hint">Games, models, animations, UI — wherever your best work lives.</span>
+            <span class="error">Enter a valid link starting with http.</span>
+          </div>
+
+          <div class="field">
+            <label for="f-rolespecific"><span id="rolespecific-label">Tell us about your craft</span></label>
+            <textarea class="textarea" id="f-rolespecific" placeholder="A few sentences…"></textarea>
+          </div>
+
+          <div class="field">
+            <label for="f-projects">Past projects / what you’ve built</label>
+            <textarea class="textarea" id="f-projects" placeholder="Games you’ve shipped or contributed to, and what you did."></textarea>
+          </div>
+
+          <div class="field">
+            <label>Availability <span class="req">*</span></label>
+            <div class="pill-group" id="avail-group">
+              <button type="button" class="pill-opt" data-val="<10 hrs/week">&lt;10 hrs/week</button>
+              <button type="button" class="pill-opt" data-val="10–20 hrs/week">10–20 hrs/week</button>
+              <button type="button" class="pill-opt" data-val="20+ hrs/week">20+ hrs/week</button>
+            </div>
+            <span class="error" id="avail-error" style="display:none">Pick your availability.</span>
+          </div>
+          <div class="field">
+            <label for="f-timezone">Timezone</label>
+            <input class="input" id="f-timezone" type="text" placeholder="e.g. EST, GMT+1" />
+          </div>
+
+          <div class="step-nav">
+            <button class="btn btn--ghost" id="s4-back">← Back</button>
+            <button class="btn btn--primary" id="s4-next">Review →</button>
+          </div>
+        </section>
+
+        <!-- STEP 5: REVIEW + WHY -->
+        <section class="step" data-step="5">
+          <h2>Last thing.</h2>
+          <p class="lead">Tell us why BRICK RUSH, then check everything over.</p>
+
+          <div class="field">
+            <label for="f-why">Why do you want to join BRICK RUSH? <span class="req">*</span></label>
+            <textarea class="textarea" id="f-why" placeholder="What pulls you to a brand-new studio? What do you want to build?"></textarea>
+            <span class="error">Tell us a little about why (10+ characters).</span>
+          </div>
+
+          <dl class="review-list" id="review-list"></dl>
+
+          <div class="step-nav">
+            <button class="btn btn--ghost" id="s5-back">← Back</button>
+            <button class="btn btn--primary" id="submit-app">Submit application</button>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- STATUS SCREEN -->
+      <section class="card status-screen hidden" id="status-screen">
+        <div class="status-badge pending" id="status-badge">⏳</div>
+        <h2 id="status-title">Application received</h2>
+        <p id="status-msg"></p>
+        <div class="status-note hidden" id="status-extra"></div>
+        <div class="hero__actions" style="justify-content:center" id="status-discord">
+          <a class="btn btn--primary" data-discord href="#">Join our Discord</a>
+          <a class="btn btn--ghost" href="index.html">Back home</a>
+        </div>
+        <div class="status-meta" id="status-meta"></div>
+      </section>
+
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
+  <script src="https://unpkg.com/lenis@1.1.14/dist/lenis.min.js"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/sound.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script src="assets/js/interactions.js"></script>
+  <script src="assets/js/apply.js"></script>
+</body>
+</html>

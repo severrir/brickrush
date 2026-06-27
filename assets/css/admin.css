@@ -1,0 +1,107 @@
+/* =========================================================================
+   BRICK RUSH — admin.css
+   Owner dashboard: login gate, stats, applicant queue, accept/reject,
+   "most wanted" demand controls.
+   ========================================================================= */
+
+.admin-main { padding-top: 7rem; padding-bottom: 5rem; min-height: 100svh; }
+.admin-shell { width: min(100% - 2.5rem, 1100px); margin-inline: auto; }
+
+/* ---- Gate ---- */
+.admin-gate { max-width: 420px; margin: 4rem auto; padding: 2.4rem; text-align: center; }
+.admin-gate .lock { width: 56px; height: 56px; border-radius: var(--r-md); margin: 0 auto 1.2rem;
+  display: grid; place-items: center; font-size: 1.5rem; background: var(--grad-soft); border: 1px solid var(--line-strong); }
+.admin-gate h2 { font-size: 1.4rem; margin-bottom: 0.4rem; }
+.admin-gate p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.6rem; }
+.admin-gate .err { color: var(--red); font-size: 0.82rem; min-height: 1.2em; margin-top: 0.6rem; }
+
+/* ---- Header ---- */
+.admin-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem;
+  flex-wrap: wrap; margin-bottom: 2rem; }
+.admin-top h1 { font-size: clamp(1.8rem, 4vw, 2.6rem); }
+.admin-top .lead { font-size: 0.95rem; }
+
+/* ---- Stat cards ---- */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.6rem; }
+.stat { padding: 1.3rem 1.4rem; }
+.stat .n { font-family: var(--font-display); font-weight: 800; font-size: 2rem; line-height: 1; }
+.stat .l { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--text-faint); margin-top: 0.4rem; }
+.stat--pending .n { color: var(--amber); }
+.stat--accepted .n { color: var(--green); }
+.stat--rejected .n { color: var(--red); }
+
+/* ---- Demand controls (most wanted) ---- */
+.demand-panel { padding: 1.5rem; margin-bottom: 2rem; }
+.demand-panel h3 { font-size: 1.1rem; margin-bottom: 0.3rem; }
+.demand-panel > p { color: var(--text-muted); font-size: 0.86rem; margin-bottom: 1.2rem; }
+.demand-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: 0.8rem 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.demand-row:last-child { border-bottom: none; }
+.demand-row__name { display: flex; align-items: center; gap: 0.6rem; font-weight: 600; }
+.demand-seg { display: inline-flex; background: var(--ink); border: 1px solid var(--line-strong);
+  border-radius: var(--r-pill); padding: 3px; }
+.demand-seg button { padding: 0.4rem 0.9rem; border-radius: var(--r-pill); font-family: var(--font-mono);
+  font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); transition: all 0.25s; }
+.demand-seg button.active { color: #fff; }
+.demand-seg button[data-v="most_wanted"].active { background: var(--grad-pink); }
+.demand-seg button[data-v="open"].active { background: var(--cyan); color: var(--ink); }
+.demand-seg button[data-v="closed"].active { background: var(--surface-3); color: var(--text); }
+
+/* ---- Toolbar ---- */
+.admin-toolbar { display: flex; gap: 0.7rem; flex-wrap: wrap; align-items: center; margin-bottom: 1.2rem; }
+.admin-search { flex: 1; min-width: 200px; }
+.filter-tabs { display: inline-flex; gap: 0.3rem; flex-wrap: wrap; }
+.filter-tabs button { padding: 0.5rem 0.95rem; border-radius: var(--r-pill); font-size: 0.8rem;
+  border: 1px solid var(--line-strong); color: var(--text-muted); background: var(--surface); transition: all 0.2s; }
+.filter-tabs button:hover { color: var(--text); }
+.filter-tabs button.active { background: var(--text); color: var(--ink); border-color: transparent; font-weight: 600; }
+
+/* ---- Applicant queue ---- */
+.queue { display: grid; gap: 1rem; }
+.applicant { padding: 1.4rem 1.5rem; display: grid; grid-template-columns: 1fr auto; gap: 1.2rem; align-items: start; }
+.applicant__main { min-width: 0; }
+.applicant__head { display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+.applicant__head h3 { font-size: 1.15rem; }
+.applicant__role { font-family: var(--font-mono); font-size: 0.74rem; color: var(--magenta);
+  display: inline-flex; align-items: center; gap: 0.35rem; }
+.applicant__role .ico { width: 15px; height: 15px; }
+.demand-row__name .ico { width: 19px; height: 19px; }
+.applicant__meta { display: flex; flex-wrap: wrap; gap: 0.4rem 1.2rem; margin: 0.7rem 0; font-size: 0.84rem; color: var(--text-muted); }
+.applicant__meta b { color: var(--text); font-weight: 600; }
+.applicant__meta a { color: var(--cyan); word-break: break-all; }
+.applicant__qa { margin-top: 0.8rem; display: grid; gap: 0.6rem; }
+.applicant__qa .q { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-faint); }
+.applicant__qa .a { font-size: 0.9rem; color: var(--text); }
+.applicant__note { width: 100%; margin-top: 0.9rem; }
+.applicant__actions { display: flex; flex-direction: column; gap: 0.5rem; align-items: stretch; min-width: 130px; }
+.applicant__actions .btn { width: 100%; padding: 0.7em 1em; font-size: 0.74rem; }
+.btn--accept { background: rgba(54,226,160,0.14); border-color: rgba(54,226,160,0.5); color: var(--green); }
+.btn--accept:hover { background: var(--green); color: var(--ink); }
+.btn--reject { background: rgba(255,77,109,0.12); border-color: rgba(255,77,109,0.5); color: var(--red); }
+.btn--reject:hover { background: var(--red); color: #fff; }
+.applicant__when { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-faint); text-align: right; }
+.btn--ban { background: rgba(255,77,109,0.08); border-color: rgba(255,77,109,0.35); color: var(--red); }
+.btn--ban:hover { background: var(--red); color: #fff; }
+.btn--unban { background: var(--surface-3); border-color: var(--line-strong); color: var(--text-muted); }
+.btn--unban:hover { color: var(--text); border-color: var(--text-muted); }
+.applicant--banned { opacity: 0.72; border-color: rgba(255,77,109,0.4); }
+.applicant--banned h3 { text-decoration: line-through; text-decoration-color: rgba(255,77,109,0.6); }
+
+@media (max-width: 680px) {
+  .applicant { grid-template-columns: 1fr; }
+  .applicant__actions { flex-direction: row; }
+}
+
+/* ---- Empty state ---- */
+.empty { text-align: center; padding: 4rem 2rem; border: 1px dashed var(--line-strong); border-radius: var(--r-lg); }
+.empty .big { font-size: 3rem; margin-bottom: 1rem; }
+.empty h3 { font-size: 1.2rem; margin-bottom: 0.4rem; }
+.empty p { color: var(--text-muted); font-size: 0.9rem; }
+
+/* ---- Demo banner ---- */
+.demo-banner { display: flex; align-items: center; gap: 0.7rem; padding: 0.8rem 1.1rem; margin-bottom: 1.6rem;
+  background: rgba(255,194,75,0.1); border: 1px solid rgba(255,194,75,0.35); border-radius: var(--r-md);
+  font-size: 0.84rem; color: var(--amber); }
+.demo-banner b { color: #ffd987; }

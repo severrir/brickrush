@@ -1,0 +1,6 @@
+# BRICK RUSH — robots.txt
+User-agent: *
+Allow: /
+Disallow: /admin.html
+
+Sitemap: https://severrir.github.io/brickrush/sitemap.xml

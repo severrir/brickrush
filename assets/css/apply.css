@@ -1,0 +1,132 @@
+/* =========================================================================
+   BRICK RUSH — apply.css
+   Login gate, role selection, multi-step form, status (pending/accept/reject).
+   ========================================================================= */
+
+.apply-main { padding-top: 7rem; padding-bottom: 5rem; min-height: 100svh; }
+.apply-shell { width: min(100% - 2.5rem, 880px); margin-inline: auto; }
+.apply-head { text-align: center; margin-bottom: 2.5rem; }
+.apply-head h1 { font-size: clamp(2rem, 5vw, 3.2rem); margin: 0.8rem 0 0.8rem; }
+.apply-head .lead { margin-inline: auto; }
+
+/* ---- Stepper ---- */
+.stepper { display: flex; align-items: center; justify-content: center; gap: 0.4rem; margin-bottom: 2.5rem; flex-wrap: wrap; }
+.stepper__node { display: flex; align-items: center; gap: 0.4rem; }
+.stepper__dot { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+  font-family: var(--font-mono); font-size: 0.8rem; border: 1px solid var(--line-strong);
+  background: var(--surface); color: var(--text-faint); transition: all 0.35s var(--ease); }
+.stepper__node.active .stepper__dot { background: var(--grad-pink); border-color: transparent; color: #fff;
+  box-shadow: var(--glow-pink); }
+.stepper__node.done .stepper__dot { background: var(--magenta); border-color: transparent; color: #fff; }
+.stepper__label { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--text-faint); }
+.stepper__node.active .stepper__label { color: var(--text); }
+.stepper__line { width: 32px; height: 1px; background: var(--line-strong); }
+@media (max-width: 640px) { .stepper__label { display: none; } .stepper__line { width: 16px; } }
+
+/* ---- Steps ---- */
+.step { display: none; animation: stepIn 0.5s var(--ease); }
+.step.active { display: block; }
+@keyframes stepIn { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+.step h2 { font-size: 1.6rem; margin-bottom: 0.4rem; }
+.step > .lead { margin-bottom: 1.8rem; }
+
+/* ---- Role selection (package-selection pattern) ---- */
+.role-select { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem; }
+.role-opt { position: relative; text-align: left; padding: 1.5rem; border-radius: var(--r-lg);
+  background: var(--surface); border: 1.5px solid var(--line); cursor: pointer;
+  transition: transform 0.3s var(--ease), border-color 0.3s, box-shadow 0.3s, background 0.3s; display: flex;
+  flex-direction: column; gap: 0.7rem; }
+.role-opt:hover { transform: translateY(-4px); border-color: var(--line-strong); }
+.role-opt.selected { border-color: var(--magenta); box-shadow: var(--glow-pink); background: var(--surface-2); }
+.role-opt__check { position: absolute; top: 1rem; right: 1rem; width: 22px; height: 22px; border-radius: 50%;
+  border: 1.5px solid var(--line-strong); display: grid; place-items: center; transition: all 0.3s; }
+.role-opt.selected .role-opt__check { background: var(--magenta); border-color: transparent; }
+.role-opt.selected .role-opt__check::after { content: '✓'; color: #fff; font-size: 0.78rem; font-weight: 700; }
+.role-opt__ico { width: 52px; height: 52px; border-radius: var(--r-md); display: grid; place-items: center;
+  font-size: 1.6rem; background: var(--surface-2); border: 1px solid var(--line-strong); }
+.role-opt.selected .role-opt__ico { background: var(--grad-soft); }
+.role-opt h3 { font-size: 1.25rem; }
+.role-opt p { font-size: 0.88rem; color: var(--text-muted); flex: 1; }
+.role-opt__skills { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+
+/* ---- Login gate ---- */
+.login-card { max-width: 460px; margin-inline: auto; padding: 2.4rem; text-align: center; }
+.login-card .brand-mark { width: 70px; margin: 0 auto 1.2rem; }
+.login-card h2 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+.login-card p { color: var(--text-muted); font-size: 0.92rem; margin-bottom: 1.8rem; }
+.login-divider { display: flex; align-items: center; gap: 1rem; margin: 1.4rem 0; color: var(--text-faint);
+  font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.2em; }
+.login-divider::before, .login-divider::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+
+/* ---- Checkbox / requirement rows ---- */
+.check-row { display: flex; align-items: flex-start; gap: 0.7rem; padding: 0.9rem 1rem;
+  background: var(--ink); border: 1px solid var(--line-strong); border-radius: var(--r-md); margin-bottom: 1rem;
+  cursor: pointer; transition: border-color 0.2s; }
+.check-row:hover { border-color: var(--line-strong); }
+.check-row input { margin-top: 0.2rem; accent-color: var(--magenta); width: 18px; height: 18px; flex: none; }
+.check-row span { font-size: 0.9rem; color: var(--text-muted); }
+.check-row.invalid { border-color: var(--red); }
+
+/* ---- Pills (experience level / availability quick-pick) ---- */
+.pill-group { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.pill-opt { padding: 0.6rem 1rem; border-radius: var(--r-pill); border: 1px solid var(--line-strong);
+  background: var(--surface); font-size: 0.85rem; cursor: pointer; transition: all 0.25s; }
+.pill-opt:hover { border-color: var(--magenta); }
+.pill-opt.active { background: var(--grad-pink); border-color: transparent; color: #fff; font-weight: 600; }
+
+/* ---- Rev-share read step ---- */
+.rs-flow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem; margin: 1.6rem 0; }
+.rs-card { background: var(--ink); border: 1px solid var(--line); border-radius: var(--r-md); padding: 1.2rem; }
+.rs-card .rs-num { font-family: var(--font-mono); font-size: 0.72rem; color: var(--magenta); letter-spacing: 0.1em; }
+.rs-card h4 { font-size: 1rem; margin: 0.4rem 0 0.4rem; }
+.rs-card p { font-size: 0.84rem; color: var(--text-muted); }
+.rs-card .rs-big { font-family: var(--font-display); font-weight: 800; font-size: 1.5rem; }
+.rs-example { display: flex; gap: 1rem; align-items: center; padding: 1.2rem 1.4rem; border-radius: var(--r-md);
+  background: linear-gradient(120deg, rgba(255,46,110,0.12), rgba(124,92,255,0.10)); border: 1px solid var(--line-strong); }
+.rs-example .ico { width: 34px; height: 34px; flex: none; stroke: url(#ig); }
+.rs-example p { font-size: 0.9rem; color: var(--text); }
+.rs-example b { color: var(--magenta); }
+@media (max-width: 640px) { .rs-flow { grid-template-columns: 1fr; } }
+.signed-in-row { display: flex; align-items: center; gap: 0.7rem; padding: 0.8rem 1rem; margin-bottom: 1.4rem;
+  background: rgba(54,226,160,0.1); border: 1px solid rgba(54,226,160,0.35); border-radius: var(--r-md); font-size: 0.86rem; }
+.signed-in-row .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex: none; }
+.signed-in-row b { color: var(--text); }
+
+/* ---- Step nav ---- */
+.step-nav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 2rem; }
+.step-nav .spacer { flex: 1; }
+
+/* ---- Review ---- */
+.review-list { display: grid; gap: 0.5rem; background: var(--ink); border: 1px solid var(--line);
+  border-radius: var(--r-lg); padding: 1.4rem; margin-bottom: 1.5rem; }
+.review-row { display: flex; justify-content: space-between; gap: 1rem; padding: 0.5rem 0;
+  border-bottom: 1px dashed var(--line); }
+.review-row:last-child { border-bottom: none; }
+.review-row dt { font-family: var(--font-mono); font-size: 0.74rem; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-faint); }
+.review-row dd { text-align: right; color: var(--text); font-size: 0.92rem; max-width: 60%; word-break: break-word; }
+
+/* ---- Status screen (minimal auth card pattern) ---- */
+.status-screen { max-width: 520px; margin-inline: auto; text-align: center; padding: 3rem 2.4rem; }
+.status-badge { width: 96px; height: 96px; border-radius: 50%; margin: 0 auto 1.6rem; display: grid;
+  place-items: center; font-size: 2.6rem; position: relative; }
+.status-badge::before { content: ''; position: absolute; inset: -8px; border-radius: 50%;
+  border: 2px solid currentColor; opacity: 0.25; animation: pulseRing 2.4s var(--ease) infinite; }
+.status-badge.pending { background: rgba(255,194,75,0.12); color: var(--amber); }
+.status-badge.accepted { background: rgba(54,226,160,0.12); color: var(--green); }
+.status-badge.rejected { background: rgba(255,77,109,0.12); color: var(--red); }
+.status-screen h2 { font-size: 1.9rem; margin-bottom: 0.6rem; }
+.status-screen p { color: var(--text-muted); margin-bottom: 1.8rem; }
+.status-meta { font-family: var(--font-mono); font-size: 0.74rem; color: var(--text-faint);
+  letter-spacing: 0.1em; margin-top: 1.4rem; }
+.status-note { text-align: left; margin: 0 auto 1.6rem; max-width: 420px; padding: 1rem 1.2rem;
+  background: var(--ink); border: 1px solid var(--line-strong); border-left: 3px solid var(--magenta);
+  border-radius: var(--r-md); color: var(--text); font-size: 0.92rem; line-height: 1.55; white-space: pre-wrap; }
+.status-note::before { content: 'A message from the team'; display: block; font-family: var(--font-mono);
+  font-size: 0.66rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 0.4rem; }
+@keyframes pulseRing { 0% { transform: scale(1); opacity: 0.3; } 100% { transform: scale(1.25); opacity: 0; } }
+
+/* confetti burst on submit */
+.confetti { position: fixed; width: 9px; height: 14px; top: -20px; z-index: 300; pointer-events: none; border-radius: 2px; }
+@keyframes fall { to { transform: translateY(105vh) rotate(540deg); opacity: 0.2; } }

@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BRICK RUSH — Join the founding team | Roblox Studio</title>
+  <meta name="description" content="BRICK RUSH is a new Roblox studio assembling its founding team of scripters, modelers, animators & UI designers. Build worlds at the speed of play and earn real revenue share." />
+  <meta name="keywords" content="Roblox studio, Roblox developer jobs, Roblox scripter, Roblox modeler, Roblox animator, Roblox UI designer, revenue share, BRICK RUSH" />
+  <meta name="theme-color" content="#0B0C16" />
+  <meta name="author" content="BRICK RUSH" />
+  <link rel="canonical" href="https://severrir.github.io/brickrush/" />
+  <link rel="icon" href="assets/img/logo.png" />
+  <link rel="apple-touch-icon" href="assets/img/logo.png" />
+
+  <!-- Open Graph / social cards (replace severrir with your GitHub username) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="BRICK RUSH" />
+  <meta property="og:title" content="BRICK RUSH — Join the founding team" />
+  <meta property="og:description" content="A new Roblox studio building worlds at the speed of play. We need scripters, modelers, animators & UI designers — get in before day one and earn real revenue share." />
+  <meta property="og:url" content="https://severrir.github.io/brickrush/" />
+  <meta property="og:image" content="https://severrir.github.io/brickrush/assets/img/logo.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="BRICK RUSH — Join the founding team" />
+  <meta name="twitter:description" content="A new Roblox studio building worlds at the speed of play. Apply to join the founding team." />
+  <meta name="twitter:image" content="https://severrir.github.io/brickrush/assets/img/logo.png" />
+
+  <!-- Structured data for search engines -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "BRICK RUSH",
+    "description": "A new Roblox development studio assembling its founding team.",
+    "url": "https://severrir.github.io/brickrush/",
+    "logo": "https://severrir.github.io/brickrush/assets/img/logo.png",
+    "sameAs": ["https://discord.gg/UmHJ7kvS"]
+  }
+  </script>
+  <link rel="stylesheet" href="assets/css/base.css" />
+  <link rel="stylesheet" href="assets/css/components.css" />
+  <link rel="stylesheet" href="assets/css/landing.css" />
+  <script type="importmap">
+    { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+  </script>
+</head>
+<body class="loading">
+
+  <!-- Shared brand-gradient for icon strokes -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+    <linearGradient id="ig" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FF2E6E"/><stop offset="0.5" stop-color="#7C5CFF"/><stop offset="1" stop-color="#2BD2FF"/>
+    </linearGradient>
+  </defs></svg>
+
+  <!-- ===== LOADING SCREEN ===== -->
+  <div class="loader">
+    <div class="loader__inner">
+      <div class="loader__logo-wrap">
+        <div class="loader__bricks"></div>
+        <img class="loader__logo" src="assets/img/logo.png" alt="BRICK RUSH" />
+      </div>
+      <div class="loader__bar"><i></i></div>
+      <div class="loader__status">Loading the studio… <b>0%</b></div>
+      <button class="loader__skip" type="button">Skip</button>
+    </div>
+  </div>
+
+  <!-- ===== NAV ===== -->
+  <nav class="nav">
+    <div class="nav__inner">
+      <a class="brand" href="index.html"><img src="assets/img/logo.png" alt="" />Brick<b>Rush</b></a>
+      <ul class="nav__links">
+        <li><a href="#build">What we build</a></li>
+        <li><a href="#roles">Roles</a></li>
+        <li><a href="#revshare">Rev-share</a></li>
+        <li><a href="#faq">FAQ</a></li>
+        <li><a href="apply.html">Apply</a></li>
+      </ul>
+      <div class="nav__right">
+        <button class="sound-toggle" aria-label="Toggle sound"><span class="bar"></span><span class="bar"></span><span class="bar"></span></button>
+        <span data-auth-slot></span>
+        <a class="btn btn--primary nav__cta-desktop" href="apply.html">Apply now</a>
+        <button class="nav__burger" aria-label="Menu"><span></span></button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ===== HERO ===== -->
+  <header class="hero" id="home">
+    <canvas id="hero-canvas" data-parallax="0.16"></canvas>
+    <div class="hero__glow"></div>
+    <div class="container hero__inner">
+      <div class="hero__content">
+        <div class="hero__badge"><span class="tag">✳ Now assembling the founding team</span></div>
+        <h1 class="h-display">
+          <span class="line">Join the</span>
+          <span class="line gradient-text">founding team</span>
+          <span class="line">of Brick Rush.</span>
+        </h1>
+        <p class="lead hero__sub">A new Roblox studio building worlds at the speed of play. We need scripters, modelers, animators &amp; UI designers — get in before day one and earn real revenue share for what you build.</p>
+        <div class="hero__actions">
+          <a class="btn btn--primary btn--lg" href="apply.html">Apply to join →</a>
+          <a class="btn btn--ghost btn--lg" data-discord href="#">Join our Discord</a>
+        </div>
+        <div class="hero__stats">
+          <div class="hero__stat"><div class="n"><span data-count="3"></span></div><div class="l">Roles open</div></div>
+          <div class="hero__stat"><div class="n" id="stat-demand">All roles</div><div class="l">Most wanted</div></div>
+          <div class="hero__stat"><div class="n">100%</div><div class="l">Revenue share</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="hero__scroll"><span class="mouse"></span>Scroll</div>
+  </header>
+
+  <!-- ===== MARQUEE ===== -->
+  <div class="marquee" aria-hidden="true">
+    <div class="marquee__track">
+      <span>Build fast</span><span>Ship hard</span><span>Own your work</span><span>Day-one team</span><span>Revenue share</span>
+      <span>Build fast</span><span>Ship hard</span><span>Own your work</span><span>Day-one team</span><span>Revenue share</span>
+    </div>
+  </div>
+
+  <!-- ===== WHAT WE BUILD ===== -->
+  <section class="section" id="build">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">What we build</span>
+        <h2 class="h-1">No fixed genre. Just<br><span class="gradient-text">ambitious worlds.</span></h2>
+        <p class="lead">We chase the best ideas, not a formula. Simulators, combat, open worlds — whatever earns its place. What stays constant is how we build: fast, clean, and obsessed with how it feels to play.</p>
+      </div>
+      <div class="feature-grid">
+        <div class="card feature reveal" data-delay="1"><div class="feature__ico"><svg class="ico" viewBox="0 0 24 24" stroke="url(#ig)"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg></div><h3>Speed without slop</h3><p>We move fast and still ship things that hold up. Momentum is the brand — sloppiness isn’t.</p></div>
+        <div class="card feature reveal" data-delay="2"><div class="feature__ico"><svg class="ico" viewBox="0 0 24 24" stroke="url(#ig)"><circle cx="12" cy="12" r="9"/><rect x="8" y="5.5" width="3" height="3" rx=".7"/><rect x="14" y="9.5" width="3" height="3" rx=".7"/><rect x="6.5" y="13" width="3" height="3" rx=".7"/></svg></div><h3>Worlds, not levels</h3><p>Places players want to live in. Systems with depth, art with identity, UI that disappears.</p></div>
+        <div class="card feature reveal" data-delay="3"><div class="feature__ico"><svg class="ico" viewBox="0 0 24 24" stroke="url(#ig)"><path d="M6 3h12l3 6-9 12L3 9l3-6Z"/><path d="M3 9h18M9 3 6 9l6 12 6-12-3-6"/></svg></div><h3>Polish players feel</h3><p>The last 10% is the difference between a game and a hit. We sweat it on every release.</p></div>
+        <div class="card feature reveal" data-delay="4"><div class="feature__ico"><svg class="ico" viewBox="0 0 24 24" stroke="url(#ig)"><circle cx="12" cy="12" r="9"/><path d="M9 15 15 9"/><circle cx="9.6" cy="9.6" r="1.1"/><circle cx="14.4" cy="14.4" r="1.1"/></svg></div><h3>You own the upside</h3><p>Real revenue share by department and points. Build the engine, share the win.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== ROLES ===== -->
+  <section class="section" id="roles">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">Open roles</span>
+        <h2 class="h-1">Pick your lane.</h2>
+        <p class="lead">Three departments, one team. Demand is live — what’s “most wanted” updates straight from the studio.</p>
+      </div>
+      <div class="roles-grid" id="roles-grid"><!-- rendered by landing.js --></div>
+    </div>
+  </section>
+
+  <!-- ===== HOW IT WORKS ===== -->
+  <section class="section" id="how">
+    <div class="container">
+      <div class="section-head center reveal">
+        <span class="eyebrow">How it works</span>
+        <h2 class="h-1">Four steps to the team.</h2>
+      </div>
+      <div class="feature-grid">
+        <div class="card feature reveal" data-delay="1"><div class="feature__ico mono">01</div><h3>Apply</h3><p>Pick a role, tell us what you’ve built, drop your portfolio. Five minutes.</p></div>
+        <div class="card feature reveal" data-delay="2"><div class="feature__ico mono">02</div><h3>Review</h3><p>We read every application by hand. No bots, no black holes.</p></div>
+        <div class="card feature reveal" data-delay="3"><div class="feature__ico mono">03</div><h3>Interview</h3><p>If it’s a fit, we’ll chat on Discord — see how you think and build.</p></div>
+        <div class="card feature reveal" data-delay="4"><div class="feature__ico mono">04</div><h3>Welcome</h3><p>Get your role, meet the team, and start shipping from day one.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== REVENUE SHARE ===== -->
+  <section class="section" id="revshare">
+    <div class="container">
+      <div class="why">
+        <div class="why__text reveal">
+          <span class="eyebrow">Revenue share</span>
+          <h2 class="h-1">Own a piece of<br>what you build.</h2>
+          <p class="lead">No fake promises — a clear, points-based split. Each department holds a share of a game’s revenue. Inside it, every system you build earns points by difficulty. Your points are your cut.</p>
+          <div class="why__list">
+            <div class="why__item"><span class="num">01</span><div><h4>Departments hold the pool</h4><p>Each department — Scripting, Visual (modeling + animation) and UI/UX — is allocated a share of the game’s revenue.</p></div></div>
+            <div class="why__item"><span class="num">02</span><div><h4>Work earns points</h4><p>Difficulty decides reward. A small system might be ~2 points; a big, hard one ~10. The harder you carry, the more you hold.</p></div></div>
+            <div class="why__item"><span class="num">03</span><div><h4>Points become payout</h4><p>Points convert to a real percentage of revenue (for example, ~100 points ≈ 2%). Transparent, tracked, and yours.</p></div></div>
+          </div>
+        </div>
+        <div class="why__visual reveal" data-delay="2">
+          <div class="revshare-ring"></div>
+          <div class="revshare-center"><div class="n gradient-text">30%</div><div class="l">e.g. Scripter dept</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== WHAT WE VALUE ===== -->
+  <section class="section" id="values">
+    <div class="container">
+      <div class="section-head center reveal">
+        <span class="eyebrow">What we value</span>
+        <h2 class="h-1">How we move.</h2>
+      </div>
+      <div class="feature-grid">
+        <div class="card feature reveal" data-delay="1"><div class="feature__ico"><svg class="ico" viewBox="0 0 24 24" stroke="url(#ig)"><path d="M4 7l6 5-6 5M13 7l6 5-6 5"/></svg></div><h3>Speed</h3><p>Ship, learn, ship again. We’d rather have it live and improving than perfect and imaginary.</p></div>
+        <div class="card feature reveal" data-delay="2"><div class="feature__ico"><svg class="ico" viewBox="0 0 24 24" stroke="url(#ig)"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3Z"/><path d="M12 12v9M4 7.5l8 4.5 8-4.5"/></svg></div><h3>Ownership</h3><p>You’re not a freelancer doing tickets. You own systems, decisions, and your slice of the upside.</p></div>
+        <div class="card feature reveal" data-delay="3"><div class="feature__ico"><svg class="ico" viewBox="0 0 24 24" stroke="url(#ig)"><path d="M12 3l2.4 6.2L21 11l-6.6 1.8L12 19l-2.4-6.2L3 11l6.6-1.8L12 3Z"/></svg></div><h3>Polish</h3><p>Details are the whole game. We obsess over feel, feedback, and the final 10%.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FAQ ===== -->
+  <section class="section" id="faq">
+    <div class="container">
+      <div class="section-head center reveal">
+        <span class="eyebrow">FAQ</span>
+        <h2 class="h-1">Good questions.</h2>
+      </div>
+      <div class="faq" style="max-width:760px;margin:2.5rem auto 0;">
+        <div class="faq-item card reveal">
+          <button class="faq-item__q" aria-expanded="false"><span>How does pay work?</span><span class="faq-item__ico">+</span></button>
+          <div class="faq-item__a"><p>Revenue share, by department and points. Each department holds a share of a game’s revenue; the systems you build earn points by difficulty, and points convert to a real percentage of revenue. The more (and harder) you build, the bigger your cut.</p></div>
+        </div>
+        <div class="faq-item card reveal">
+          <button class="faq-item__q" aria-expanded="false"><span>Do I need to be a certain age?</span><span class="faq-item__ico">+</span></button>
+          <div class="faq-item__a"><p>You must be 13 or older to apply, in line with Roblox’s platform rules. We’ll ask you to confirm this on the form.</p></div>
+        </div>
+        <div class="faq-item card reveal">
+          <button class="faq-item__q" aria-expanded="false"><span>How much experience do I need?</span><span class="faq-item__ico">+</span></button>
+          <div class="faq-item__a"><p>Skill over résumé. Show us what you’ve built. We take beginners with real potential and pros alike — the portfolio does the talking.</p></div>
+        </div>
+        <div class="faq-item card reveal">
+          <button class="faq-item__q" aria-expanded="false"><span>How long does review take?</span><span class="faq-item__ico">+</span></button>
+          <div class="faq-item__a"><p>We review by hand, usually within a few days. If it’s a fit, the next step is a quick interview on Discord.</p></div>
+        </div>
+        <div class="faq-item card reveal">
+          <button class="faq-item__q" aria-expanded="false"><span>Can I apply again if I’m rejected?</span><span class="faq-item__ico">+</span></button>
+          <div class="faq-item__a"><p>Always. Sharpen your portfolio and reapply anytime — plenty of great builders don’t land it the first try.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FINAL CTA ===== -->
+  <section class="section">
+    <div class="container">
+      <div class="cta-band reveal">
+        <h2>Get in before day one.</h2>
+        <p>The founding team is small on purpose. If you build fast and care about the craft, this is your shot to own a piece of something from the start.</p>
+        <div class="hero__actions">
+          <a class="btn btn--primary btn--lg" href="apply.html">Apply to join →</a>
+          <a class="btn btn--ghost btn--lg" data-discord href="#">Join our Discord</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer__grid">
+        <div class="footer__brand">
+          <a class="brand" href="index.html"><img src="assets/img/logo.png" alt="" />Brick<b>Rush</b></a>
+          <p>A new Roblox studio building worlds at the speed of play. Assembling the founding team now.</p>
+        </div>
+        <div class="footer__cols">
+          <div class="footer__col">
+            <h4>Studio</h4>
+            <a href="#build">What we build</a>
+            <a href="#revshare">Revenue share</a>
+            <a href="#values">What we value</a>
+          </div>
+          <div class="footer__col">
+            <h4>Join</h4>
+            <a href="apply.html">Apply</a>
+            <a href="#roles">Open roles</a>
+            <a href="#faq">FAQ</a>
+          </div>
+          <div class="footer__col">
+            <h4>Community</h4>
+            <a data-discord href="#">Discord</a>
+            <a data-social="robloxGroup" href="#">Roblox group</a>
+            <a data-social="tiktok" href="#">TikTok</a>
+            <a data-social="youtube" href="#">YouTube</a>
+          </div>
+        </div>
+      </div>
+      <div class="footer__bottom">
+        <span>© <span data-year></span> BRICK RUSH</span>
+        <span>Built at the speed of play ✳</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ===== SCRIPTS ===== -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
+  <script src="https://unpkg.com/lenis@1.1.14/dist/lenis.min.js"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/sound.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script src="assets/js/interactions.js"></script>
+  <script src="assets/js/landing.js"></script>
+  <script src="assets/js/loader.js"></script>
+  <script type="module" src="assets/js/hero.js"></script>
+</body>
+</html>
