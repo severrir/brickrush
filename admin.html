@@ -83,6 +83,18 @@
           <div id="demand-rows"></div>
         </div>
 
+        <!-- Admins (owner only) -->
+        <div class="card demand-panel hidden" id="admin-manage">
+          <h3>👑 Admins</h3>
+          <p>Add people who can review applications (they can accept/reject/ban, but can't manage admins). Only you, the owner, can change this. Use their Discord <b>user ID</b> — turn on Discord Developer Mode, right-click the person → <b>Copy User ID</b>.</p>
+          <div class="admin-add">
+            <input class="input" id="admin-add-id" placeholder="Discord user ID (≈18 digits)" inputmode="numeric" />
+            <input class="input" id="admin-add-name" placeholder="Name (optional)" />
+            <button class="btn btn--primary" id="admin-add-btn" data-no-sound>Add admin</button>
+          </div>
+          <div id="admins-list"></div>
+        </div>
+
         <!-- Toolbar -->
         <div class="admin-toolbar">
           <input class="input admin-search" id="admin-search" type="search" placeholder="Search name, Discord, Roblox, role…" />

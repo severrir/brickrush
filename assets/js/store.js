@@ -9,6 +9,7 @@
   const APPS_KEY = 'brickrush_applications';
   const DEMAND_KEY = 'brickrush_demand';
   const BANS_KEY = 'brickrush_bans';
+  const ADMINS_KEY = 'brickrush_admins';
 
   const DEFAULT_DEMAND = { scripter: 'open', modeler_animator: 'open', uiux: 'open' };
 
@@ -73,9 +74,13 @@
      (which holds the Discord bot token). Best-effort — never blocks the admin. */
   async function notifyApplicant(discordId, status, message, fullName) {
     if (!sb || !discordId) return;
+    const reviewer = (window.Auth && window.Auth.getUser && window.Auth.getUser()) || {};
     try {
       const { data, error } = await sb.functions.invoke('notify-applicant', {
-        body: { discord_id: discordId, status, message: message || '', full_name: fullName || '' },
+        body: {
+          discord_id: discordId, status, message: message || '', full_name: fullName || '',
+          reviewer_name: reviewer.global_name || reviewer.username || '', reviewer_avatar: reviewer.avatar || '',
+        },
       });
       if (error) {
         let detail = error.message || 'error';
@@ -139,7 +144,13 @@
 
     async updateStatus(id, status, message = '', notify = true) {
       let app;
-      const patch = { status, reviewed_at: new Date().toISOString(), decision_message: message };
+      const reviewer = (window.Auth && window.Auth.getUser && window.Auth.getUser()) || {};
+      const patch = {
+        status, reviewed_at: new Date().toISOString(), decision_message: message,
+        reviewer_id: reviewer.id || null,
+        reviewer_name: reviewer.global_name || reviewer.username || null,
+        reviewer_avatar: reviewer.avatar || null,
+      };
       if (sb) {
         const { data, error } = await sb.from('applications').update(patch).eq('id', id).select().single();
         if (error) throw error; app = data;
@@ -197,6 +208,39 @@
     async listBans() {
       if (sb) { const { data } = await sb.from('bans').select('*'); return data || []; }
       return readLocal(BANS_KEY, []);
+    },
+
+    /* ---- Staff / admins (owner can add other admins) ---- */
+    async isStaff() {
+      const u = (window.Auth && window.Auth.getUser && window.Auth.getUser()) || null;
+      if (!u) return false;
+      if (u.id === CFG.adminDiscordId) return true; // owner
+      if (sb) {
+        try { const { data } = await sb.rpc('am_i_staff'); return data === true; } catch (e) { return false; }
+      }
+      return readLocal(ADMINS_KEY, []).some(a => a.discord_id === u.id);
+    },
+    async listAdmins() {
+      if (sb) { const { data } = await sb.from('admins').select('*').order('added_at', { ascending: true }); return data || []; }
+      return readLocal(ADMINS_KEY, []);
+    },
+    async addAdmin(discordId, username) {
+      const rec = { discord_id: String(discordId || '').trim(), username: (username || '').trim(), avatar: '', added_at: new Date().toISOString() };
+      if (!/^\d{15,21}$/.test(rec.discord_id)) return { error: 'That doesn’t look like a Discord ID — it should be a ~18-digit number.' };
+      if (rec.discord_id === CFG.adminDiscordId) return { error: 'That’s the owner — they already have full access.' };
+      if (sb) {
+        const { error } = await sb.from('admins').upsert(rec, { onConflict: 'discord_id' });
+        if (error) return { error: error.message };
+      } else {
+        const list = readLocal(ADMINS_KEY, []);
+        if (!list.some(a => a.discord_id === rec.discord_id)) list.push(rec);
+        writeLocal(ADMINS_KEY, list);
+      }
+      return { ok: true };
+    },
+    async removeAdmin(discordId) {
+      if (sb) { await sb.from('admins').delete().eq('discord_id', discordId); return; }
+      writeLocal(ADMINS_KEY, readLocal(ADMINS_KEY, []).filter(a => a.discord_id !== discordId));
     },
 
     async getDemand() {

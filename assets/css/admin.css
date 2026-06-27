@@ -48,6 +48,17 @@
 .demand-seg button[data-v="open"].active { background: var(--cyan); color: var(--ink); }
 .demand-seg button[data-v="closed"].active { background: var(--surface-3); color: var(--text); }
 
+/* ---- Admin management ---- */
+.admin-add { display: flex; gap: 0.6rem; flex-wrap: wrap; margin: 1rem 0 0.6rem; }
+.admin-add .input { flex: 1; min-width: 150px; }
+.admin-add #admin-add-name { max-width: 200px; }
+.admin-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: 0.7rem 0; border-bottom: 1px solid var(--line); }
+.admin-row:last-child { border-bottom: none; }
+.admin-row__who { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.admin-row__who .mono { font-size: 0.74rem; color: var(--text-faint); }
+@media (max-width: 560px) { .admin-add #admin-add-name { max-width: none; } }
+
 /* ---- Toolbar ---- */
 .admin-toolbar { display: flex; gap: 0.7rem; flex-wrap: wrap; align-items: center; margin-bottom: 1.2rem; }
 .admin-search { flex: 1; min-width: 200px; }

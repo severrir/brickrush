@@ -141,7 +141,7 @@
     }
   }
 
-  function showStatus(status, when, message) {
+  function showStatus(status, when, message, reviewerName, reviewerAvatar) {
     $('#form-wrap').classList.add('hidden');
     $('.stepper').classList.add('hidden');
     const screen = $('#status-screen');
@@ -149,6 +149,14 @@
     const extra = $('#status-extra');
     if (message) { extra.textContent = message; extra.classList.remove('hidden'); }
     else extra.classList.add('hidden');
+    const rv = $('#status-reviewer');
+    if (rv) {
+      if (reviewerName && (status === 'accepted' || status === 'rejected')) {
+        rv.innerHTML = (reviewerAvatar ? `<img src="${escapeHtml(reviewerAvatar)}" alt="" />` : '') +
+          `<span>Reviewed by <b>${escapeHtml(reviewerName)}</b></span>`;
+        rv.classList.remove('hidden');
+      } else rv.classList.add('hidden');
+    }
     const map = {
       pending: { icon: '⏳', title: 'Application received', cls: 'pending',
         msg: 'You’re in the queue. We review every application by hand — if it’s a fit, the next step is a quick interview on Discord.' },
@@ -206,7 +214,7 @@
     if (!user) return false;
     try {
       const existing = await Store.findByDiscordId(user.id);
-      if (existing) { showStatus(existing.status, existing.created_at, existing.decision_message); return true; }
+      if (existing) { showStatus(existing.status, existing.created_at, existing.decision_message, existing.reviewer_name, existing.reviewer_avatar); return true; }
     } catch (e) {}
     return false;
   }

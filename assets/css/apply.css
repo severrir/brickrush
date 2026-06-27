@@ -131,6 +131,11 @@
   border-radius: var(--r-md); color: var(--text); font-size: 0.92rem; line-height: 1.55; white-space: pre-wrap; }
 .status-note::before { content: 'A message from the team'; display: block; font-family: var(--font-mono);
   font-size: 0.66rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 0.4rem; }
+.status-reviewer { display: inline-flex; align-items: center; gap: 0.55rem; margin: 0 auto 1.4rem;
+  padding: 0.45rem 0.9rem 0.45rem 0.5rem; border-radius: var(--r-pill); background: var(--surface-2);
+  border: 1px solid var(--line); font-size: 0.84rem; color: var(--text-muted); }
+.status-reviewer img { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; }
+.status-reviewer b { color: var(--text); }
 @keyframes pulseRing { 0% { transform: scale(1); opacity: 0.3; } 100% { transform: scale(1.25); opacity: 0; } }
 
 /* confetti burst on submit */

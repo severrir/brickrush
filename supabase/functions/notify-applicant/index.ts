@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
     if (String(callerId) !== OWNER_ID) return json({ ok: false, reason: "not_owner", detected_id: String(callerId), expected: OWNER_ID });
 
     // 2) Read the request.
-    const { discord_id, status, message, full_name } = await req.json();
+    const { discord_id, status, message, full_name, reviewer_name, reviewer_avatar } = await req.json();
     if (!discord_id) return json({ ok: false, reason: "missing_discord_id" });
     if (!BOT_TOKEN) return json({ ok: false, reason: "no_bot_token_secret" });
 
@@ -62,12 +62,15 @@ Deno.serve(async (req) => {
     };
     const COLORS: Record<string, number> = { accepted: 0x36e2a0, rejected: 0xff4d6d, banned: 0xff4d6d };
 
-    const embed = {
+    const embed: Record<string, unknown> = {
       title: TITLES[status] ?? "BRICK RUSH",
       description: (BASE[status] ?? "") + (message ? `\n\n**A message from the team:**\n${message}` : ""),
       color: COLORS[status] ?? 0x7c5cff,
       footer: { text: "BRICK RUSH" },
     };
+    if (reviewer_name) {
+      embed.author = { name: `Reviewed by ${reviewer_name}`, icon_url: reviewer_avatar || undefined };
+    }
     const msgRes = await fetch(`https://discord.com/api/v10/channels/${dm.id}/messages`, {
       method: "POST",
       headers: { Authorization: `Bot ${BOT_TOKEN}`, "Content-Type": "application/json" },

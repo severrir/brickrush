@@ -50,6 +50,8 @@
     $('#admin-logout').classList.remove('hidden');
     $('#demo-banner').classList.toggle('hidden', Store.live);
     await renderDemand();
+    // Admin management is owner-only.
+    if (Auth.isOwner && Auth.isOwner()) { $('#admin-manage').classList.remove('hidden'); await renderAdminManage(); }
     await load();
     $('#admin-logout').addEventListener('click', async () => { await Auth.logoutAdmin(); location.href = 'index.html'; });
     $('#admin-search').addEventListener('input', (e) => { query = e.target.value.toLowerCase(); renderQueue(); });
@@ -87,6 +89,33 @@
     $('#stat-pending').textContent = by('pending');
     $('#stat-accepted').textContent = by('accepted');
     $('#stat-rejected').textContent = by('rejected');
+  }
+
+  /* ---------- Admin management (owner only) ---------- */
+  async function renderAdminManage() {
+    const list = await Store.listAdmins();
+    const wrap = $('#admins-list');
+    wrap.innerHTML = list.length
+      ? list.map(a => `<div class="admin-row" data-id="${esc(a.discord_id)}">
+          <span class="admin-row__who"><b>${esc(a.username || 'Admin')}</b> <span class="mono">${esc(a.discord_id)}</span></span>
+          <button class="btn btn--reject btn--sm" data-remove>Remove</button></div>`).join('')
+      : '<p class="muted" style="font-size:0.86rem;margin-top:0.8rem">No admins yet — just you, the owner.</p>';
+    wrap.querySelectorAll('[data-remove]').forEach(b => b.addEventListener('click', async () => {
+      const id = b.closest('.admin-row').dataset.id;
+      await Store.removeAdmin(id); if (window.Sound) window.Sound.play('tick');
+      window.toast('Admin removed.', ''); await renderAdminManage();
+    }));
+    const addBtn = $('#admin-add-btn');
+    if (addBtn && !addBtn.dataset.wired) {
+      addBtn.dataset.wired = '1';
+      addBtn.addEventListener('click', async () => {
+        const res = await Store.addAdmin($('#admin-add-id').value, $('#admin-add-name').value);
+        if (res.error) { window.toast(res.error, 'error', true); return; }
+        $('#admin-add-id').value = ''; $('#admin-add-name').value = '';
+        if (window.Sound) window.Sound.play('success');
+        window.toast('Admin added ✓', 'success'); await renderAdminManage();
+      });
+    }
   }
 
   /* ---------- Demand controls ---------- */
@@ -240,9 +269,9 @@
   document.addEventListener('DOMContentLoaded', async () => {
     await Auth.init();
     if (Auth.live()) {
-      // Real backend: only the owner's signed-in Discord account gets in.
+      // Real backend: the owner OR any added admin gets in.
       const u = Auth.getUser();
-      if (u && u.id === CFG.adminDiscordId) boot();
+      if (u && await Store.isStaff()) boot();
       else showDiscordGate(u);
     } else {
       // Demo: password (and this device stays unlocked once entered).
