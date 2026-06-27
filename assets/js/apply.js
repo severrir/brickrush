@@ -163,7 +163,9 @@
     $('#status-badge').textContent = s.icon;
     $('#status-title').textContent = s.title;
     $('#status-msg').textContent = s.msg;
-    $('#status-discord').classList.toggle('hidden', status === 'rejected');
+    // Rejected or accepted applicants can apply again; pending/banned cannot.
+    $('#status-reapply-row').hidden = !(status === 'accepted' || status === 'rejected');
+    $('#status-discord').classList.remove('hidden');
     $('#status-meta').textContent = when ? 'Submitted ' + new Date(when).toLocaleDateString() : 'Status: ' + status.toUpperCase();
   }
 
@@ -246,7 +248,7 @@
       try { if (await Store.isBanned(user.id)) { showStatus('banned'); return; } } catch (e) {}
     }
 
-    // If they already applied (or arrived at #status), show their status
-    await checkExistingStatus();
+    // Show their existing status — unless they clicked "Apply again" (?fresh)
+    if (!params.has('fresh')) await checkExistingStatus();
   });
 })();
