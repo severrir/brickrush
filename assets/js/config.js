@@ -44,8 +44,8 @@ window.BRICKRUSH_CONFIG = {
      2. Paste the Project URL and the public "anon" key below
      3. Run the SQL in README.md to create the tables
      The site auto-detects these and stops using local storage. */
-  SUPABASE_URL: '',
-  SUPABASE_ANON_KEY: '',
+  SUPABASE_URL: 'https://fkptagpyuevukyzgwyle.supabase.co',
+  SUPABASE_ANON_KEY: 'sb_publishable_SrfoAQbAguATXGOr6GVMEg_C_Nfv0se',
 
   /* --- Discord webhook (optional) ---
      Server Settings > Integrations > Webhooks > New Webhook > Copy URL.
