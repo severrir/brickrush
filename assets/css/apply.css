@@ -59,8 +59,8 @@
 .role-opt__badge.tag--closed { background: var(--surface-3); border: 1px solid var(--line-strong); color: var(--text-muted); }
 .role-opt--hot { border-color: rgba(255,46,110,0.55); box-shadow: var(--glow-pink); }
 .role-opt--hot:hover { border-color: var(--magenta); }
-.role-opt--closed { opacity: 0.5; }
-.role-opt--closed:hover { transform: none; border-color: var(--line); }
+.role-opt--closed { opacity: 0.4; filter: grayscale(0.7); pointer-events: none; }
+.role-opt--closed h3, .role-opt--closed p { color: var(--text-faint); }
 
 /* ---- Login gate ---- */
 .login-card { max-width: 460px; margin-inline: auto; padding: 2.4rem; text-align: center; }

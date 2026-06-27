@@ -134,7 +134,8 @@
     $$('.demand-seg button', wrap).forEach(btn => btn.addEventListener('click', async () => {
       const row = btn.closest('.demand-row'); const role = row.dataset.role; const v = btn.dataset.v;
       $$('.demand-seg button', row).forEach(x => x.classList.remove('active')); btn.classList.add('active');
-      await Store.setDemand(role, v);
+      const res = await Store.setDemand(role, v);
+      if (res && res.error) { window.toast('Could not save demand: ' + res.error, 'error', true); await renderDemand(); return; }
       window.toast(`${ROLES.find(r => r.id === role).label} set to "${v.replace('_', ' ')}".`, 'success');
     }));
   }

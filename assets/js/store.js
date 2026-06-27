@@ -254,9 +254,15 @@
     },
 
     async setDemand(role, level) {
-      if (sb) { await sb.from('role_demand').upsert({ role, level }); return; }
+      if (sb) {
+        const { data, error } = await sb.from('role_demand').update({ level }).eq('role', role).select();
+        if (error) return { error: error.message };
+        if (!data || data.length === 0) return { error: 'Saved nothing — check permissions (RLS).' };
+        return { ok: true };
+      }
       const d = readLocal(DEMAND_KEY, DEFAULT_DEMAND);
       d[role] = level; writeLocal(DEMAND_KEY, d);
+      return { ok: true };
     },
 
     async findByDiscordId(discordId) {
