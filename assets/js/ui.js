@@ -117,14 +117,15 @@
     if (!w) { w = document.createElement('div'); w.className = 'toast-wrap'; document.body.appendChild(w); }
     return w;
   }
-  window.toast = function (msg, type = '') {
+  window.toast = function (msg, type = '', sticky = false) {
     const w = ensureWrap();
     const t = document.createElement('div');
     t.className = 'toast' + (type ? ' toast--' + type : '');
-    t.innerHTML = `<span class="toast__dot"></span><span>${msg}</span>`;
+    t.innerHTML = `<span class="toast__dot"></span><span>${msg}</span>` + (sticky ? '<span style="margin-left:auto;cursor:pointer;opacity:0.6">✕</span>' : '');
     w.appendChild(t);
     if (window.Sound) window.Sound.play(type === 'error' ? 'error' : type === 'success' ? 'success' : 'tick');
-    setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 400); }, 4200);
+    if (sticky) { t.addEventListener('click', () => { t.classList.add('out'); setTimeout(() => t.remove(), 400); }); }
+    else setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 400); }, 4200);
   };
 
   /* ---------- Year ---------- */

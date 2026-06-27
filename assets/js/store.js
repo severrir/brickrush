@@ -80,11 +80,11 @@
       if (error) {
         let detail = error.message || 'error';
         try { detail = JSON.stringify(await error.context.json()); } catch (e) {}
-        if (window.toast) window.toast('DM failed: ' + detail, 'error');
+        if (window.toast) window.toast('DM failed: ' + detail, 'error', true);
         console.warn('[notify]', detail); return;
       }
       if (data && data.ok) { if (window.toast) window.toast('Applicant DM sent ✓', 'success'); }
-      else { if (window.toast) window.toast('DM not sent — ' + JSON.stringify(data), 'error'); console.warn('[notify]', data); }
+      else { if (window.toast) window.toast('DM not sent — ' + JSON.stringify(data), 'error', true); console.warn('[notify]', data); }
     } catch (e) { if (window.toast) window.toast('DM call error: ' + e.message, 'error'); console.warn('[notify]', e); }
   }
 
