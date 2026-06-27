@@ -29,15 +29,15 @@ Deno.serve(async (req) => {
     const ures = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
       headers: { Authorization: `Bearer ${token}`, apikey: ANON },
     });
-    if (!ures.ok) return json({ error: "unauthorized" }, 401);
+    if (!ures.ok) return json({ ok: false, reason: "unauthorized_token" });
     const user = await ures.json();
-    const callerId = user?.user_metadata?.provider_id ?? user?.identities?.[0]?.id;
-    if (String(callerId) !== OWNER_ID) return json({ error: "forbidden" }, 403);
+    const callerId = user?.user_metadata?.provider_id ?? user?.user_metadata?.sub ?? user?.identities?.[0]?.id;
+    if (String(callerId) !== OWNER_ID) return json({ ok: false, reason: "not_owner", detected_id: String(callerId), expected: OWNER_ID });
 
     // 2) Read the request.
     const { discord_id, status, message, full_name } = await req.json();
-    if (!discord_id) return json({ error: "missing discord_id" }, 400);
-    if (!BOT_TOKEN) return json({ error: "DISCORD_BOT_TOKEN not set" }, 500);
+    if (!discord_id) return json({ ok: false, reason: "missing_discord_id" });
+    if (!BOT_TOKEN) return json({ ok: false, reason: "no_bot_token_secret" });
 
     // 3) Open a DM channel with the applicant.
     const dmRes = await fetch("https://discord.com/api/v10/users/@me/channels", {
