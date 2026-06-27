@@ -72,6 +72,7 @@
       [[name, name.value.trim().length >= 2], [rob, rob.value.trim().length >= 2], [dis, dis.value.trim().length >= 2]]
         .forEach(([el, good]) => { setInvalid(el, !good); if (!good) ok = false; });
       const ageBad = !age.checked; setInvalid(age, ageBad); if (ageBad) ok = false;
+      const joined = $('#joined-discord'); const joinedBad = !joined.checked; setInvalid(joined, joinedBad); if (joinedBad) ok = false;
     }
     if (n === 4) {
       const port = $('#f-portfolio');

@@ -92,6 +92,12 @@
   background: rgba(54,226,160,0.1); border: 1px solid rgba(54,226,160,0.35); border-radius: var(--r-md); font-size: 0.86rem; }
 .signed-in-row .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex: none; }
 .signed-in-row b { color: var(--text); }
+.join-gate { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  padding: 1.1rem 1.3rem; border-radius: var(--r-md); margin-bottom: 1rem;
+  background: linear-gradient(120deg, rgba(88,101,242,0.14), rgba(124,92,255,0.10)); border: 1px solid rgba(88,101,242,0.4); }
+.join-gate__text { display: flex; flex-direction: column; gap: 0.2rem; }
+.join-gate__text strong { font-size: 0.98rem; }
+.join-gate__text span { font-size: 0.84rem; color: var(--text-muted); }
 
 /* ---- Step nav ---- */
 .step-nav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 2rem; }

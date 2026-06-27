@@ -180,7 +180,6 @@
         if (banBtn.dataset.ban === 'ban') {
           const ok = await Store.banUser(appObj);
           if (!ok) { banBtn.disabled = false; window.toast('Can’t ban — this application has no Discord ID.', 'error'); return; }
-          await Store.updateStatus(id, 'rejected');
           if (window.Sound) window.Sound.play('reject');
           window.toast(`${esc(cardName(id))} banned from applying.`, '');
         } else {

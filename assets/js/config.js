@@ -8,7 +8,7 @@ window.BRICKRUSH_CONFIG = {
   /* --- Brand --- */
   studioName: 'BRICK RUSH',
   tagline: 'We build worlds at the speed of play.',
-  discordInvite: 'https://discord.gg/UmHJ7kvS',
+  discordInvite: 'https://discord.gg/CjVpen7Jvt',
   email: 'team@brickrush.gg',
 
   /* Social links — replace '' with real URLs when you have them.

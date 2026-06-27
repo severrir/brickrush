@@ -69,6 +69,17 @@
     return { scripter: 'Scripter', modeler_animator: 'Modeler & Animator', uiux: 'UI/UX Designer' }[r] || r;
   }
 
+  /* DM the applicant their result via the Supabase 'notify-applicant' function
+     (which holds the Discord bot token). Best-effort — never blocks the admin. */
+  async function notifyApplicant(discordId, status, message, fullName) {
+    if (!sb || !discordId) return;
+    try {
+      await sb.functions.invoke('notify-applicant', {
+        body: { discord_id: discordId, status, message: message || '', full_name: fullName || '' },
+      });
+    } catch (e) { /* function may not be deployed yet — ignore */ }
+  }
+
   /* ---- Public API ---- */
   const Store = {
     live: Boolean(sb),
@@ -118,7 +129,7 @@
       });
     },
 
-    async updateStatus(id, status, message = '') {
+    async updateStatus(id, status, message = '', notify = true) {
       let app;
       const patch = { status, reviewed_at: new Date().toISOString(), decision_message: message };
       if (sb) {
@@ -132,6 +143,7 @@
       if (app) {
         const verb = status === 'accepted' ? '✅ **Accepted**' : '❌ **Rejected**';
         await notifyDiscord(`${verb} — ${app.full_name} (${roleLabel(app.role)})${message ? `\n> ${message}` : ''}`);
+        if (notify) await notifyApplicant(app.discord_id, status, message, app.full_name);
       }
       return app;
     },
@@ -164,7 +176,10 @@
         if (!bans.some(b => b.discord_id === rec.discord_id)) bans.push(rec);
         writeLocal(BANS_KEY, bans);
       }
+      // mark their application rejected (without a second DM)
+      if (app.id) await this.updateStatus(app.id, 'rejected', '', false);
       await notifyDiscord(`⛔ **Banned** — ${rec.full_name || rec.discord_username || rec.discord_id} can no longer apply.`);
+      await notifyApplicant(rec.discord_id, 'banned', '', rec.full_name);
       return true;
     },
     async unbanUser(discordId) {
