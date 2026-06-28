@@ -142,8 +142,59 @@
     $('#cheat-close').addEventListener('click', () => $('#cheat-modal').classList.add('hidden'));
     $('#show-cheat').addEventListener('click', () => $('#cheat-modal').classList.remove('hidden'));
     wireKeyboard();
+    wireCmdk();
     wirePush();
     subscribeRealtime();
+  }
+
+  /* ---------- Command palette (Ctrl/⌘+K) ---------- */
+  let cmdkItems = [], cmdkIndex = 0;
+  function openCmdk() {
+    $('#cmdk').classList.remove('hidden');
+    const i = $('#cmdk-input'); i.value = ''; renderCmdk(''); i.focus();
+  }
+  function closeCmdk() { $('#cmdk').classList.add('hidden'); }
+  function jumpToApplicant(id) {
+    filter = 'all'; query = ''; $('#admin-search').value = '';
+    $$('.filter-tabs button').forEach(b => b.classList.toggle('active', b.dataset.filter === 'all'));
+    renderQueue();
+    setTimeout(() => { const cards = $$('.applicant'); const card = $(`.applicant[data-id="${id}"]`); if (card) setActive(cards.indexOf(card)); }, 60);
+  }
+  function renderCmdk(q) {
+    q = (q || '').toLowerCase();
+    const actions = [
+      { label: '⬇  Export CSV', act: exportCsv },
+      { label: '🔀  Toggle sort (newest / top-rated)', act: () => $('#sort-toggle').click() },
+      { label: '⌨  Keyboard shortcuts', act: () => $('#cheat-modal').classList.remove('hidden') },
+    ].filter(a => !q || a.label.toLowerCase().includes(q));
+    const matches = apps
+      .filter(a => !q || `${a.full_name} ${a.discord_username} ${a.roblox_username} ${roleLabel(a.role)}`.toLowerCase().includes(q))
+      .slice(0, 8)
+      .map(a => ({ label: `👤  ${a.full_name} · ${roleLabel(a.role)} · ${a.status}`, act: () => jumpToApplicant(a.id) }));
+    cmdkItems = [...matches, ...actions]; cmdkIndex = 0;
+    $('#cmdk-results').innerHTML = cmdkItems.length
+      ? cmdkItems.map((it, i) => `<button class="cmdk__item${i === 0 ? ' active' : ''}" data-i="${i}">${esc(it.label)}</button>`).join('')
+      : '<div class="cmdk__empty">No matches</div>';
+    $$('#cmdk-results .cmdk__item').forEach(b => b.addEventListener('click', () => { cmdkItems[+b.dataset.i].act(); closeCmdk(); }));
+  }
+  function cmdkMove(d) {
+    if (!cmdkItems.length) return;
+    cmdkIndex = (cmdkIndex + d + cmdkItems.length) % cmdkItems.length;
+    $$('#cmdk-results .cmdk__item').forEach((b, i) => b.classList.toggle('active', i === cmdkIndex));
+    $$('#cmdk-results .cmdk__item')[cmdkIndex]?.scrollIntoView({ block: 'nearest' });
+  }
+  function wireCmdk() {
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); openCmdk(); }
+    });
+    $('#cmdk').addEventListener('click', (e) => { if (e.target.id === 'cmdk') closeCmdk(); });
+    $('#cmdk-input').addEventListener('input', (e) => renderCmdk(e.target.value));
+    $('#cmdk-input').addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown') { e.preventDefault(); cmdkMove(1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); cmdkMove(-1); }
+      else if (e.key === 'Enter') { e.preventDefault(); if (cmdkItems[cmdkIndex]) { cmdkItems[cmdkIndex].act(); closeCmdk(); } }
+      else if (e.key === 'Escape') { closeCmdk(); }
+    });
   }
 
   /* ---------- Keyboard shortcuts ---------- */
