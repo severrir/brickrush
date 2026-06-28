@@ -223,6 +223,20 @@
     ).join('');
   }
 
+  /* ---------- Verify the Roblox account actually exists ---------- */
+  const robloxCheckCache = {};
+  async function verifyRoblox(username) {
+    if (!username) return false;
+    if (!window.SB) return true; // demo / no backend → don't block
+    if (robloxCheckCache[username] !== undefined) return robloxCheckCache[username];
+    try {
+      const { data } = await window.SB.functions.invoke('roblox-info', { body: { username } });
+      const ok = (!data || data.error) ? true : data.found !== false; // fail open on API error
+      robloxCheckCache[username] = ok;
+      return ok;
+    } catch (e) { return true; }
+  }
+
   function showStatus(status, when, message, reviewerName, reviewerAvatar) {
     $('#form-wrap').classList.add('hidden');
     $('.stepper').classList.add('hidden');
@@ -337,7 +351,23 @@
     $('#s2-back').addEventListener('click', () => goTo(1));
     $('#s2-next').addEventListener('click', () => { if (validateStep(2)) { capture(2); goTo(3); } });
     $('#s3-back').addEventListener('click', () => goTo(2));
-    $('#s3-next').addEventListener('click', () => { if (validateStep(3)) { capture(3); goTo(4); } });
+    $('#s3-next').addEventListener('click', async () => {
+      if (!validateStep(3)) return;
+      const btn = $('#s3-next'), rob = $('#f-roblox'), orig = btn.textContent;
+      btn.disabled = true; btn.textContent = 'Checking…';
+      const ok = await verifyRoblox(rob.value.trim());
+      btn.disabled = false; btn.textContent = orig;
+      if (!ok) {
+        setInvalid(rob, true);
+        const err = rob.closest('.field').querySelector('.error'); if (err) err.textContent = 'We couldn’t find that Roblox account — check the username.';
+        if (window.Sound) window.Sound.play('error');
+        return;
+      }
+      capture(3); goTo(4);
+    });
+    $('#f-roblox')?.addEventListener('input', () => {
+      const err = $('#f-roblox').closest('.field').querySelector('.error'); if (err) err.textContent = 'Enter your Roblox username.';
+    });
     $('#s4-back').addEventListener('click', () => goTo(3));
     $('#s4-next').addEventListener('click', () => { if (validateStep(4)) { capture(4); buildReview(); goTo(5); } });
     $('#s5-back').addEventListener('click', () => goTo(4));
