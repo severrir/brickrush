@@ -21,6 +21,10 @@
     low: { l: 'Low', c: '#5C6276' }, medium: { l: 'Medium', c: '#2BD2FF' },
     high: { l: 'High', c: '#FFC24B' }, urgent: { l: 'Urgent', c: '#FF4D6D' },
   };
+  const DIFF = {
+    easy: { l: 'Easy', c: '#36E2A0', n: 1 }, medium: { l: 'Medium', c: '#FFC24B', n: 2 }, hard: { l: 'Hard', c: '#FF4D6D', n: 3 },
+  };
+  const diffOf = (t) => DIFF[t.difficulty] ? t.difficulty : 'medium';
   const STATUS_LABEL = { planning: 'Planning', in_dev: 'In development', testing: 'Testing', launched: 'Launched', paused: 'Paused' };
 
   /* ---- state ---- */
@@ -218,25 +222,33 @@
     wireCanvas(board);
   }
 
+  function canClaim(t) {
+    if (t.assignee_id || t.discipline === 'overview') return false;
+    return ACCESS.is_staff || (ACCESS.leads || []).includes(t.discipline) || isMember();
+  }
+
   function cardHtml(t) {
     const pri = PRI[t.priority] || PRI.medium;
+    const d = diffOf(t);
     const chk = Array.isArray(t.checklist) ? t.checklist : [];
     const chkDone = chk.filter(c => c.done).length;
     const due = t.due_date ? dueChip(t.due_date) : '';
-    const assignee = t.assignee_id ? avatarChip(t) : '';
     const labels = (t.labels || []).map(l => `<span class="lbl">${esc(l)}</span>`).join('');
+    const right = t.assignee_id ? avatarChip(t)
+      : (canClaim(t) ? `<button class="claim-btn" data-claim="${t.id}" data-no-sound title="Claim this task">✋ Claim</button>` : '');
     return `<article class="task-card" data-task="${t.id}" draggable="${canMoveTask(t) ? 'true' : 'false'}" style="--pri:${pri.c}">
       <div class="task-card__pri"></div>
       <div class="task-card__title">${esc(t.title)}</div>
       ${labels ? `<div class="task-card__labels">${labels}</div>` : ''}
       <div class="task-card__foot">
         <span class="task-meta">
+          <span class="diff diff--${d}" title="Difficulty: ${DIFF[d].l}">${DIFF[d].l}</span>
           ${t.points > 0 ? `<span class="pts">◆ ${t.points}</span>` : ''}
           ${chk.length ? `<span class="chk ${chkDone === chk.length ? 'chk--done' : ''}">☑ ${chkDone}/${chk.length}</span>` : ''}
           ${t.attachment_url ? `<span class="att" title="Has an attachment">🔗</span>` : ''}
           ${due}
         </span>
-        ${assignee}
+        ${right}
       </div>
     </article>`;
   }
@@ -258,8 +270,11 @@
     // open card
     $$('#board-canvas .task-card').forEach(c => c.addEventListener('click', (e) => {
       if (c.classList.contains('dragging')) return;
+      if (e.target.closest('[data-claim]')) return; // claim button handles itself
       openCard(c.dataset.task);
     }));
+    // claim buttons
+    $$('#board-canvas [data-claim]').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); claimTask(b.dataset.claim); }));
     // add-card composers
     $$('#board-canvas .col__add').forEach(btn => btn.addEventListener('click', () => openComposer(btn, board)));
     // drag & drop (desktop)
@@ -362,6 +377,37 @@
     renderGameList();
   }
 
+  /* ===================== CLAIM ===================== */
+  async function claimTask(id) {
+    const r = await window.Board.claimTask(id);
+    if (r && r.ok) {
+      const u = window.Auth.getUser() || {};
+      const t = tasks.find(x => x.id === id);
+      if (t) {
+        const mem = members.find(m => m.discord_id === ACCESS.discord_id) || {};
+        t.assignee_id = ACCESS.discord_id || u.id || 'me';
+        t.assignee_name = u.global_name || u.username || mem.username || 'You';
+        t.assignee_avatar = u.avatar || '';
+      }
+      if (window.Sound) window.Sound.play('select');
+      toast('Claimed ✓ — it’s in your tasks now.', 'success');
+      refreshAfterMutation();
+      refreshMyCount();
+    } else if (r && r.reason === 'limit') {
+      const dl = DIFF[r.difficulty] ? DIFF[r.difficulty].l.toLowerCase() : r.difficulty;
+      toast(`Hold on — you’ve already got your ${r.cap} ${dl} task${r.cap > 1 ? 's' : ''} on the go. Finish or drop one first.`, 'error');
+    } else if (r && r.reason === 'already_claimed') {
+      toast(`Someone just claimed this${r.by ? ' (' + r.by + ')' : ''}.`, 'error');
+      if (game) selectGame(game.id);
+    } else if (r && r.reason === 'no_access') {
+      toast('You’re not on this game’s team yet.', 'error');
+    } else if (r && r.reason === 'not_logged_in') {
+      toast('Log in with Discord to claim tasks.', 'error');
+    } else {
+      toast('Couldn’t claim that — try again.', 'error');
+    }
+  }
+
   /* ===================== Discord notifications ===================== */
   function fireAssignNotif(task, oldAssignee, newAssignee) {
     if (newAssignee && newAssignee !== oldAssignee && newAssignee !== ACCESS.discord_id) {
@@ -399,13 +445,15 @@
     const canvas = $('#board-canvas');
     canvas.classList.add('board-canvas--list');
     if (!myTaskList.length) {
-      canvas.innerHTML = `<div class="board-empty">◎ Nothing assigned to you right now. When a lead assigns you a card, it lands here — across every game.</div>`;
+      canvas.innerHTML = `<div class="board-empty">◎ Nothing assigned to you right now. Claim an unassigned card from a board (✋ Claim) or wait for a lead to assign you one — it lands here, across every game.</div>`;
       return;
     }
     const byGame = {};
     myTaskList.forEach(t => { (byGame[t.game_id] = byGame[t.game_id] || []).push(t); });
     const gName = (id) => { const g = GAMES.find(x => x.id === id); return g ? g.name : 'Game'; };
-    canvas.innerHTML = Object.keys(byGame).map(gid => `
+    const L = CFG.claimLimits || { easy: 3, medium: 2, hard: 1 };
+    const hint = `<div class="mt-hint">You can hold up to <b>${L.easy} easy</b>, <b>${L.medium} medium</b>, and <b>${L.hard} hard</b> task at once — finishing one frees a slot to claim another.</div>`;
+    canvas.innerHTML = hint + Object.keys(byGame).map(gid => `
       <div class="mt-group">
         <div class="mt-group__h">${esc(gName(gid))}</div>
         ${byGame[gid].map(mtItem).join('')}
@@ -417,7 +465,7 @@
     const pri = PRI[t.priority] || PRI.medium;
     const due = t.due_date ? dueChip(t.due_date) : '';
     const done = Boolean(t.completed_at);
-    const meta = [DISC[t.discipline] ? DISC[t.discipline].short : t.discipline, t.points > 0 ? `◆ ${t.points}` : ''].filter(Boolean).join(' · ');
+    const meta = [DISC[t.discipline] ? DISC[t.discipline].short : t.discipline, DIFF[diffOf(t)].l, t.points > 0 ? `◆ ${t.points}` : ''].filter(Boolean).join(' · ');
     return `<button class="mt-item${done ? ' is-done' : ''}" data-mt="${t.id}" data-game="${t.game_id}" data-disc="${t.discipline}" style="--pri:${pri.c}" data-no-sound>
       <span class="mt-item__pri"></span>
       <span class="mt-item__main"><b>${esc(t.title)}</b>
@@ -495,6 +543,10 @@
           <select id="cm-pri" data-no-sound ${ro(full)}>
             ${Object.keys(PRI).map(k => `<option value="${k}" ${k === t.priority ? 'selected' : ''}>${PRI[k].l}</option>`).join('')}
           </select></label>
+        <label class="cm-field"><span>Difficulty <i>(sets claim limit)</i></span>
+          <select id="cm-diff" data-no-sound ${ro(full)}>
+            ${Object.keys(DIFF).map(k => `<option value="${k}" ${k === diffOf(t) ? 'selected' : ''}>${DIFF[k].l}</option>`).join('')}
+          </select></label>
         <label class="cm-field"><span>Coins ◆ <i>(toward rev-share)</i></span><input id="cm-pts" type="number" min="0" value="${t.points || 0}" ${ro(full)} /></label>
         <label class="cm-field"><span>Due date</span><input id="cm-due" type="date" value="${esc(t.due_date || '')}" ${ro(full)} /></label>
         <label class="cm-field"><span>Labels <i>(comma-sep)</i></span><input id="cm-labels" value="${esc((t.labels || []).join(', '))}" ${ro(full)} /></label>
@@ -517,6 +569,7 @@
       <div class="modal__actions">
         ${full ? `<button class="btn btn--ghost btn--danger" id="cm-delete" data-no-sound>Delete</button>` : ''}
         <span style="flex:1"></span>
+        ${canClaim(t) ? `<button class="btn btn--primary" id="cm-claim" data-no-sound>✋ Claim this task</button>` : ''}
         <button class="btn btn--ghost" data-x data-no-sound>Close</button>
         ${(full || memEdit) ? `<button class="btn btn--primary" id="cm-save" data-no-sound>Save changes</button>` : ''}
       </div>`;
@@ -563,6 +616,7 @@
         patch.title = $('#cm-title').value.trim() || t.title;
         patch.description = $('#cm-desc').value;
         patch.priority = $('#cm-pri').value;
+        patch.difficulty = $('#cm-diff').value;
         patch.points = Math.max(0, parseInt($('#cm-pts').value, 10) || 0);
         patch.due_date = $('#cm-due').value || null;
         patch.attachment_url = $('#cm-att').value.trim();
@@ -587,6 +641,8 @@
       try { await window.Board.deleteTask(id); tasks = tasks.filter(x => x.id !== id); closeCard(); refreshAfterMutation(); }
       catch (e) { toast('Delete failed — ' + e.message, 'error'); }
     });
+
+    if ($('#cm-claim')) $('#cm-claim').addEventListener('click', async () => { closeCard(); await claimTask(t.id); });
 
     $$('#card-modal [data-x]').forEach(b => b.addEventListener('click', closeCard));
     openModal('#card-modal');

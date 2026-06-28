@@ -32,6 +32,11 @@ window.BRICKRUSH_CONFIG = {
      50 coins ≈ 1% (so ~100 coins ≈ 2%, matching the rev-share page). */
   coinsPerPercent: 50,
 
+  /* How many tasks one person can CLAIM for themselves at once, by difficulty
+     (open tasks only — finishing one frees a slot). Admins/leads can still
+     assign past these limits. Keep in sync with the claim_task DB function. */
+  claimLimits: { easy: 3, medium: 2, hard: 1 },
+
   /* --- Real Discord login (works on GitHub Pages, no server needed) ---
      1. Go to https://discord.com/developers/applications  > New Application
      2. OAuth2 > copy the CLIENT ID below

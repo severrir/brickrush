@@ -342,19 +342,19 @@
         title: t.title, description: t.description || '', assignee_id: t.assignee_id || null,
         assignee_name: t.assignee_name || '', assignee_avatar: '', priority: t.priority || 'medium',
         due_date: t.due_date || null, labels: t.labels || [], attachment_url: t.attachment_url || '',
-        points: t.points || 0, checklist: t.checklist || [], sort: (s += 1000),
+        points: t.points || 0, difficulty: t.difficulty || 'medium', checklist: t.checklist || [], sort: (s += 1000),
         completed_at: c.is_done ? now : null, created_at: now, created_by: 'demo', updated_at: now,
       });
     };
-    mk('scripter', 'Done', { title: 'Lobby matchmaking + teleport', priority: 'high', points: 80, assignee_id: 'demo-ava-001', assignee_name: 'avaScripts' });
-    mk('scripter', 'In Progress', { title: 'Round-based heist loop', priority: 'high', points: 120, assignee_id: 'demo-ava-001', assignee_name: 'avaScripts', checklist: [{ text: 'Timer + phases', done: true }, { text: 'Loot spawns', done: false }, { text: 'Escape vehicle', done: false }] });
-    mk('scripter', 'To Do', { title: 'Anti-exploit pass on loot pickups', priority: 'urgent', points: 60 });
-    mk('scripter', 'Backlog', { title: 'Daily login rewards', priority: 'low', points: 30 });
-    mk('modeler_animator', 'Done', { title: 'Synthwave city block kit', priority: 'medium', points: 90, assignee_id: 'demo-theo-002', assignee_name: 'theoBuilds' });
-    mk('modeler_animator', 'In Progress', { title: 'Getaway car + rig', priority: 'high', points: 70, assignee_id: 'demo-theo-002', assignee_name: 'theoBuilds', checklist: [{ text: 'Model', done: true }, { text: 'Rig + drive anim', done: false }] });
-    mk('modeler_animator', 'To Do', { title: 'Guard NPC walk/idle/alert set', priority: 'medium', points: 50 });
-    mk('uiux', 'Review', { title: 'Heist HUD: timer, alarm, loot meter', priority: 'high', points: 55, attachment_url: 'https://www.figma.com/file/example' });
-    mk('uiux', 'To Do', { title: 'Results + payout screen', priority: 'medium', points: 40 });
+    mk('scripter', 'Done', { title: 'Lobby matchmaking + teleport', priority: 'high', difficulty: 'easy', points: 80, assignee_id: 'demo-ava-001', assignee_name: 'avaScripts' });
+    mk('scripter', 'In Progress', { title: 'Round-based heist loop', priority: 'high', difficulty: 'hard', points: 120, assignee_id: 'demo-ava-001', assignee_name: 'avaScripts', checklist: [{ text: 'Timer + phases', done: true }, { text: 'Loot spawns', done: false }, { text: 'Escape vehicle', done: false }] });
+    mk('scripter', 'To Do', { title: 'Anti-exploit pass on loot pickups', priority: 'urgent', difficulty: 'hard', points: 60 });
+    mk('scripter', 'Backlog', { title: 'Daily login rewards', priority: 'low', difficulty: 'easy', points: 30 });
+    mk('modeler_animator', 'Done', { title: 'Synthwave city block kit', priority: 'medium', difficulty: 'medium', points: 90, assignee_id: 'demo-theo-002', assignee_name: 'theoBuilds' });
+    mk('modeler_animator', 'In Progress', { title: 'Getaway car + rig', priority: 'high', difficulty: 'hard', points: 70, assignee_id: 'demo-theo-002', assignee_name: 'theoBuilds', checklist: [{ text: 'Model', done: true }, { text: 'Rig + drive anim', done: false }] });
+    mk('modeler_animator', 'To Do', { title: 'Guard NPC walk/idle/alert set', priority: 'medium', difficulty: 'medium', points: 50 });
+    mk('uiux', 'Review', { title: 'Heist HUD: timer, alarm, loot meter', priority: 'high', difficulty: 'medium', points: 55, attachment_url: 'https://www.figma.com/file/example' });
+    mk('uiux', 'To Do', { title: 'Results + payout screen', priority: 'medium', difficulty: 'easy', points: 40 });
     mk('overview', 'In Progress', { title: 'Milestone: Playable vertical slice', priority: 'high', points: 0, description: 'One full heist start-to-finish with HUD + payout.' });
     mk('overview', 'Backlog', { title: 'Milestone: Closed beta', priority: 'medium', points: 0 });
     return st;
@@ -475,6 +475,7 @@
         column_id: t.column_id, board_id: t.board_id, game_id: t.game_id, discipline: t.discipline,
         title: t.title, description: t.description || '', assignee_id: t.assignee_id || null,
         assignee_name: t.assignee_name || '', assignee_avatar: t.assignee_avatar || '', priority: t.priority || 'medium',
+        difficulty: t.difficulty || 'medium',
         due_date: t.due_date || null, labels: t.labels || [], attachment_url: t.attachment_url || '',
         points: t.points || 0, checklist: t.checklist || [], sort: t.sort != null ? t.sort : 1000, created_by: myId(),
       };
@@ -496,6 +497,32 @@
     async deleteTask(id) {
       if (sb) { await sb.from('tasks').delete().eq('id', id); return; }
       const st = readBoard(); st.tasks = st.tasks.filter(t => t.id !== id); st.comments = st.comments.filter(c => c.task_id !== id); writeBoard(st);
+    },
+
+    /* ---- Self-claim a task, enforcing per-difficulty limits ---- */
+    async claimTask(taskId) {
+      if (sb) {
+        const { data, error } = await sb.rpc('claim_task', { p_task: taskId });
+        if (error) return { ok: false, reason: 'error', message: error.message };
+        return data;
+      }
+      const st = readBoard(); const me = myId();
+      const t = st.tasks.find(x => x.id === taskId);
+      if (!t) return { ok: false, reason: 'not_found' };
+      if (t.assignee_id && t.assignee_id !== me) return { ok: false, reason: 'already_claimed', by: t.assignee_name };
+      const diff = t.difficulty || 'medium';
+      const caps = CFG.claimLimits || { easy: 3, medium: 2, hard: 1 };
+      const cap = caps[diff] != null ? caps[diff] : 2;
+      const doneCols = new Set(st.columns.filter(c => c.is_done).map(c => c.id));
+      const current = st.tasks.filter(x => x.assignee_id === me && (x.difficulty || 'medium') === diff && !doneCols.has(x.column_id) && x.id !== taskId).length;
+      if (current >= cap) return { ok: false, reason: 'limit', difficulty: diff, cap, current };
+      const u = (window.Auth && window.Auth.getUser && window.Auth.getUser()) || {};
+      const mem = st.members.find(m => m.discord_id === me) || {};
+      t.assignee_id = me;
+      t.assignee_name = u.global_name || u.username || mem.username || 'You';
+      t.assignee_avatar = u.avatar || '';
+      writeBoard(st);
+      return { ok: true };
     },
 
     async listComments(taskId) {
