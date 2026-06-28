@@ -119,6 +119,16 @@ body.loading { overflow: hidden; }
 .role-card .arrow { transition: transform 0.3s var(--ease); }
 .role-card:hover .arrow { transform: translateX(5px); }
 
+/* Cursor-tracking spotlight — the glow follows your pointer across the card */
+.feature, .role-card { position: relative; }
+.feature::before, .role-card::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 0;
+  background: radial-gradient(360px circle at var(--mx, 50%) var(--my, 50%), rgba(255,46,110,0.16), transparent 42%);
+  opacity: 0; transition: opacity 0.35s var(--ease);
+}
+.feature:hover::before, .role-card:hover::before { opacity: 1; }
+.feature > *, .role-card > * { position: relative; z-index: 1; }
+
 /* ---------------- SECTION: why join (revenue share) ---------------- */
 .why { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 3rem; align-items: center; }
 .why__list { display: grid; gap: 1.1rem; margin-top: 2rem; }

@@ -182,8 +182,19 @@
     btn.addEventListener('click', () => { localStorage.setItem('brickrush_lite', on ? '0' : '1'); location.reload(); });
   }
 
+  function cardSpotlight() {
+    if (window.matchMedia('(hover: none)').matches) return;
+    document.querySelectorAll('.feature, .role-card').forEach(card => {
+      card.addEventListener('pointermove', (e) => {
+        const r = card.getBoundingClientRect();
+        card.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100) + '%');
+        card.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100) + '%');
+      });
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', async () => {
     if (window.Auth && window.Auth.init) { try { await window.Auth.init(); } catch (e) {} }
-    wireLinks(); nav(); reveals(); counters(); soundToggle(); cursor(); authNav(); liteToggle();
+    wireLinks(); nav(); reveals(); counters(); soundToggle(); cursor(); authNav(); liteToggle(); cardSpotlight();
   });
 })();
