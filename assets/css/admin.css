@@ -31,6 +31,18 @@
 .stat--accepted .n { color: var(--green); }
 .stat--rejected .n { color: var(--red); }
 
+/* ---- Roblox card ---- */
+.roblox-card:not(:empty) { margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px dashed var(--line); }
+.rbx-mini { display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; }
+.rbx-mini.muted { color: var(--text-faint); }
+.rbx-av { width: 34px; height: 34px; border-radius: 8px; background: var(--surface-2); flex: none; object-fit: cover; }
+.rbx-meta { display: flex; flex-direction: column; line-height: 1.3; }
+.rbx-meta a { color: var(--text); }
+.rbx-meta a .mono { color: var(--text-faint); font-size: 0.74rem; }
+.rbx-meta > span { color: var(--text-muted); font-size: 0.78rem; }
+.rbx-games { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.5rem; }
+.rbx-games .tag { font-size: 0.66rem; }
+
 /* ---- Insights ---- */
 .insights { margin-bottom: 1.6rem; }
 .insights h3 { font-size: 1.05rem; margin-bottom: 1.1rem; }

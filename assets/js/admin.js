@@ -374,6 +374,7 @@
             <span>Avail: <b>${esc(a.availability || '—')}${a.timezone ? ' · ' + esc(a.timezone) : ''}</b></span>
             <span>Portfolio: ${safeUrl(a.portfolio_url) ? `<a href="${safeUrl(a.portfolio_url)}" target="_blank" rel="noopener">${esc(a.portfolio_url)}</a>` : esc(a.portfolio_url || '—')}</span>
           </div>
+          <div class="roblox-card" data-rbx="${esc(a.roblox_username || '')}"></div>
           <div class="applicant__qa">
             ${a.role_answer ? `<div><div class="q">${esc(meta ? meta.questionLabel : 'Role answer')}</div><div class="a">${esc(a.role_answer)}</div></div>` : ''}
             ${a.past_projects ? `<div><div class="q">Past projects</div><div class="a">${esc(a.past_projects)}</div></div>` : ''}
@@ -443,8 +444,34 @@
       // bulk select
       const cb = $('.applicant__select', card);
       if (cb) cb.addEventListener('change', () => { cb.checked ? selected.add(id) : selected.delete(id); updateBulkBar(); });
+
+      // roblox info (live only)
+      if (Store.live && window.SB) loadRoblox(card);
     });
     updateBulkBar();
+  }
+
+  /* ---------- Roblox auto-fetch ---------- */
+  const robloxCache = {};
+  function yearsSince(iso) { try { return Math.floor((Date.now() - new Date(iso)) / (365.25 * 864e5)); } catch (e) { return null; } }
+  async function loadRoblox(card) {
+    const el = card.querySelector('.roblox-card'); if (!el) return;
+    const u = el.dataset.rbx; if (!u) { el.innerHTML = ''; return; }
+    if (!robloxCache[u]) {
+      robloxCache[u] = window.SB.functions.invoke('roblox-info', { body: { username: u } }).then(r => r.data).catch(() => ({ error: true }));
+    }
+    const d = await robloxCache[u];
+    if (!d || d.error || d.found === false) { el.innerHTML = `<div class="rbx-mini muted">🎮 Roblox: couldn’t find @${esc(u)}</div>`; return; }
+    const age = d.created != null ? yearsSince(d.created) : null;
+    el.innerHTML =
+      `<div class="rbx-mini">
+        ${d.avatar ? `<img src="${esc(d.avatar)}" alt="" class="rbx-av" loading="lazy" />` : ''}
+        <div class="rbx-meta">
+          <a href="https://www.roblox.com/users/${d.id}/profile" target="_blank" rel="noopener"><b>${esc(d.displayName || d.name)}</b> <span class="mono">@${esc(d.name)}</span></a>
+          <span>${age != null ? age + ' yr account' : ''}${d.games && d.games.length ? ' · ' + d.games.length + ' game' + (d.games.length > 1 ? 's' : '') : ''}</span>
+        </div>
+      </div>
+      ${d.games && d.games.length ? `<div class="rbx-games">${d.games.slice(0, 4).map(g => `<span class="tag">${esc(g.name)}</span>`).join('')}</div>` : ''}`;
   }
 
   function updateBulkBar() {
