@@ -5,7 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin — BRICK RUSH</title>
   <meta name="robots" content="noindex" />
+  <meta name="theme-color" content="#0B0C16" />
+  <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="assets/img/logo.png" />
+  <link rel="apple-touch-icon" href="assets/img/logo.png" />
   <link rel="stylesheet" href="assets/css/base.css" />
   <link rel="stylesheet" href="assets/css/components.css" />
   <link rel="stylesheet" href="assets/css/admin.css" />
@@ -57,6 +60,18 @@
       <section class="hidden" id="admin-dash">
         <div class="demo-banner hidden" id="demo-banner">
           ✳ <span><b>Demo mode</b> — data is stored locally in this browser. Add Supabase keys in <b>config.js</b> to go live across devices.</span>
+        </div>
+
+        <!-- Phone notifications -->
+        <div class="push-bar hidden" id="push-bar">
+          <div class="push-bar__txt">
+            <span class="push-bell">🔔</span>
+            <div><b>Phone alerts</b> <span class="push-state" id="push-state">Off</span><span class="push-hint">Get a notification the moment someone applies.</span></div>
+          </div>
+          <div class="push-bar__actions">
+            <button class="btn btn--ghost btn--sm hidden" id="install-app" data-no-sound>⬇ Install app</button>
+            <button class="btn btn--primary btn--sm" id="push-toggle" data-no-sound>Turn on</button>
+          </div>
         </div>
 
         <div class="admin-top">
@@ -147,6 +162,7 @@
   <script src="assets/js/store.js"></script>
   <script src="assets/js/auth.js"></script>
   <script src="assets/js/ui.js"></script>
+  <script src="assets/js/push.js"></script>
   <script src="assets/js/admin.js"></script>
 </body>
 </html>

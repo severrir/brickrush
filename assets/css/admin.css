@@ -146,6 +146,22 @@
 .empty h3 { font-size: 1.2rem; margin-bottom: 0.4rem; }
 .empty p { color: var(--text-muted); font-size: 0.9rem; }
 
+/* ---- Phone notifications bar ---- */
+.push-bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  padding: 1rem 1.3rem; margin-bottom: 1.6rem; border-radius: var(--r-md);
+  background: var(--surface); border: 1px solid var(--line-strong); }
+.push-bar--on { border-color: rgba(54,226,160,0.4);
+  background: linear-gradient(120deg, rgba(54,226,160,0.08), transparent 55%), var(--surface); }
+.push-bar__txt { display: flex; align-items: center; gap: 0.85rem; }
+.push-bell { font-size: 1.35rem; }
+.push-bar__txt b { font-size: 0.96rem; }
+.push-state { font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--text-faint); margin-left: 0.5rem; padding: 0.18em 0.55em; border-radius: var(--r-pill);
+  background: var(--surface-2); border: 1px solid var(--line); }
+.push-bar--on .push-state { color: var(--green); border-color: rgba(54,226,160,0.4); }
+.push-hint { display: block; font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem; }
+.push-bar__actions { display: flex; gap: 0.5rem; }
+
 /* ---- Demo banner ---- */
 .demo-banner { display: flex; align-items: center; gap: 0.7rem; padding: 0.8rem 1.1rem; margin-bottom: 1.6rem;
   background: rgba(255,194,75,0.1); border: 1px solid rgba(255,194,75,0.35); border-radius: var(--r-md);

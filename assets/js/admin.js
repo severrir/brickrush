@@ -119,6 +119,41 @@
       window.toast('Decision undone.', '');
       lastDecision = null; $('#undo-last').classList.add('hidden'); await load();
     });
+
+    wirePush();
+  }
+
+  /* ---------- Phone push notifications ---------- */
+  async function wirePush() {
+    const bar = $('#push-bar'); const toggle = $('#push-toggle'); const state = $('#push-state');
+    if (!bar || !toggle || !window.BrickPush || !Store.live) return;
+    if (!window.BrickPush.supported()) return; // unsupported → stay hidden
+    bar.classList.remove('hidden');
+
+    const sync = async () => {
+      const on = await window.BrickPush.isOn();
+      state.textContent = on ? 'On' : 'Off';
+      bar.classList.toggle('push-bar--on', on);
+      toggle.textContent = on ? 'Turn off' : 'Turn on';
+    };
+    await sync();
+
+    toggle.addEventListener('click', async () => {
+      toggle.disabled = true;
+      const on = await window.BrickPush.isOn();
+      const res = on ? await window.BrickPush.disable() : await window.BrickPush.enable();
+      if (res.error) window.toast(res.error, 'error', true);
+      else window.toast(on ? 'Phone alerts turned off.' : 'Phone alerts on ✓', on ? '' : 'success');
+      toggle.disabled = false; await sync();
+    });
+
+    // Install-as-app prompt (Android/desktop Chrome)
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault(); window.__brDeferredPrompt = e; $('#install-app').classList.remove('hidden');
+    });
+    $('#install-app').addEventListener('click', async () => {
+      if (window.__brDeferredPrompt) { window.__brDeferredPrompt.prompt(); window.__brDeferredPrompt = null; $('#install-app').classList.add('hidden'); }
+    });
   }
 
   async function load() {

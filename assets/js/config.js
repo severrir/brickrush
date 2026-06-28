@@ -51,6 +51,10 @@ window.BRICKRUSH_CONFIG = {
      Server Settings > Integrations > Webhooks > New Webhook > Copy URL.
      When set, every new application is also posted to your Discord channel. */
   DISCORD_WEBHOOK_URL: '',
+
+  /* Web-push public key (safe to expose; pairs with the private key kept in the
+     push-notify function). Powers the admin phone-notification app. */
+  vapidPublicKey: 'BMX8o7pSmHwEWRAj9dJ57kQQxd_WpbgtHeT4zjOodxHMA4gnuit_Ph9ZeIRzC1jTDEl8qCugdZtIdoJESpDQ-bc',
 };
 
 /* Helper: are we running against a real backend, or local-demo? */
