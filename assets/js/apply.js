@@ -297,6 +297,18 @@
 
     $('#revshare-ack')?.addEventListener('change', (e) => { if (e.target.checked) setInvalid(e.target, false); if (window.Sound) window.Sound.play('tick'); });
 
+    // rev-share calculator (≈100 points = 2%)
+    const rng = $('#rs-calc-range');
+    if (rng) {
+      const upd = () => {
+        const pts = +rng.value;
+        $('#rs-calc-pts').textContent = pts + ' points';
+        $('#rs-calc-out').textContent = '≈ ' + (pts * 0.02).toFixed(1).replace(/\.0$/, '') + '%';
+        rng.style.setProperty('--fill', (pts / 300 * 100) + '%');
+      };
+      rng.addEventListener('input', upd); upd();
+    }
+
     // Nav buttons
     $('#s1-next').addEventListener('click', () => { if (validateStep(1)) goTo(2); });
     $('#s2-back').addEventListener('click', () => goTo(1));

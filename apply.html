@@ -97,6 +97,15 @@
             <p>Example: as a <b>Scripter</b> (dept ≈ 30%), you build a hard combat system → <b>10 pts</b>. Across a project you reach <b>~100 pts</b> → about <b>2%</b> of that game's revenue, paid from your department's share.</p>
           </div>
 
+          <div class="rs-calc">
+            <div class="rs-calc__head">
+              <span class="rs-calc__label">Drag to estimate your cut</span>
+              <span class="rs-calc__out gradient-text" id="rs-calc-out">≈ 2%</span>
+            </div>
+            <input type="range" id="rs-calc-range" min="0" max="300" value="100" step="10" aria-label="Points earned" />
+            <div class="rs-calc__legend"><b id="rs-calc-pts">100 points</b><span>≈ your share of a game's revenue</span></div>
+          </div>
+
           <label class="check-row" id="revshare-row" style="margin-top:1.4rem">
             <input type="checkbox" id="revshare-ack" />
             <span>I understand how departments, points, and revenue share work. <span class="req">*</span></span>

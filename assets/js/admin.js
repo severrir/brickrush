@@ -17,6 +17,7 @@
   let selected = new Set();
   let sortMode = 'newest';   // 'newest' | 'rating'
   let lastDecision = null;
+  let newCount = 0;
 
   const TAGS = [
     { id: 'top', label: '⭐ Top pick', cls: 'tag--hot' },
@@ -134,7 +135,27 @@
       lastDecision = null; $('#undo-last').classList.add('hidden'); await load();
     });
 
+    $('#rt-badge').addEventListener('click', async () => {
+      newCount = 0; $('#rt-badge').classList.add('hidden'); await load();
+    });
+
     wirePush();
+    subscribeRealtime();
+  }
+
+  /* ---------- Live updates ---------- */
+  function subscribeRealtime() {
+    if (!Store.live || !window.SB) return;
+    try {
+      window.SB.channel('apps-rt')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'applications' }, () => {
+          newCount++;
+          const cnt = $('#rt-count'); if (cnt) cnt.textContent = newCount;
+          $('#rt-badge').classList.remove('hidden');
+          if (window.Sound) window.Sound.play('select');
+        })
+        .subscribe();
+    } catch (e) {}
   }
 
   /* ---------- Phone push notifications ---------- */
