@@ -237,7 +237,7 @@
 @media (hover: none) { .cursor-dot, .cursor-ring { display: none; } }
 
 /* ---------- Marquee (graffiti ticker) ---------- */
-.marquee { overflow: hidden; border-block: 1px solid var(--line); padding: 1.1rem 0;
+.marquee { overflow: hidden; max-width: 100vw; border-block: 1px solid var(--line); padding: 1.1rem 0;
   background: var(--ink); -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
           mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
 .marquee__track { display: flex; gap: 2.5rem; width: max-content; animation: marquee 28s linear infinite; }

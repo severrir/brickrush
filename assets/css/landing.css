@@ -58,8 +58,16 @@ body.loading { overflow: hidden; }
 #hero-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; display: block; }
 .hero__glow { position: absolute; z-index: 0; inset: 0; pointer-events: none;
   background: radial-gradient(600px 400px at 50% 70%, rgba(255,46,110,0.10), transparent 70%); }
-.hero__inner { position: relative; z-index: 2; }
-.hero__content { max-width: 760px; }
+.hero__inner { position: relative; z-index: 2; min-width: 0; }
+.hero__content { max-width: 760px; min-width: 0; }
+.hero h1, .hero__sub { overflow-wrap: break-word; }
+@media (max-width: 560px) {
+  .hero__content { max-width: 100%; }
+  .h-display { font-size: clamp(2.3rem, 10.5vw, 3.4rem); }
+  .hero__actions { flex-direction: column; align-items: stretch; }
+  .hero__actions .btn { width: 100%; }
+  .hero__stats { gap: 1.5rem; }
+}
 .hero__badge { margin-bottom: 1.6rem; opacity: 0; animation: heroUp 0.8s 0.2s var(--ease) forwards; }
 .hero__badge .tag { background: rgba(255,46,110,0.1); border-color: rgba(255,46,110,0.4); color: #FF6E9C; }
 .hero h1 { margin-bottom: 1.4rem; }

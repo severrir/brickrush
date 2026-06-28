@@ -53,7 +53,7 @@
 
 /* ---- Reset ---- */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; overflow-x: hidden; max-width: 100%; }
 body {
   font-family: var(--font-body);
   background: var(--bg);
@@ -104,7 +104,7 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 800; line-height
   letter-spacing: 0.26em; text-transform: uppercase; color: var(--magenta);
 }
 .eyebrow::before { content: '✳'; color: var(--magenta); font-size: 1em; }
-.lead { font-size: clamp(1.02rem, 1.6vw, 1.22rem); color: var(--text-muted); max-width: 56ch; }
+.lead { font-size: clamp(1.02rem, 1.6vw, 1.22rem); color: var(--text-muted); max-width: min(56ch, 100%); }
 .gradient-text {
   background: var(--grad); -webkit-background-clip: text; background-clip: text;
   -webkit-text-fill-color: transparent; color: transparent;
