@@ -14,6 +14,19 @@
   let filter = 'all';
   let query = '';
   let pendingDecision = null;
+  let selected = new Set();
+  let sortMode = 'newest';   // 'newest' | 'rating'
+  let lastDecision = null;
+
+  const TAGS = [
+    { id: 'top', label: '⭐ Top pick', cls: 'tag--hot' },
+    { id: 'follow', label: 'Follow up', cls: 'tag--pending' },
+    { id: 'maybe', label: 'Maybe', cls: 'tag' },
+    { id: 'portfolio', label: 'Strong portfolio', cls: 'tag--open' },
+  ];
+  const tagPreset = (t) => TAGS.find(p => p.id === t);
+  const tagCls = (t) => (tagPreset(t) || {}).cls || 'tag--custom';
+  const tagLabel = (t) => (tagPreset(t) || {}).label || t;
 
   /* ---------- Gate ---------- */
   function showGate() {
@@ -68,10 +81,43 @@
       const { id, status } = pendingDecision;
       const message = $('#decide-msg').value.trim();
       const c = $('#decide-confirm'); c.disabled = true;
+      const appObj = apps.find(x => x.id === id);
+      lastDecision = { id, prev: appObj ? appObj.status : 'pending' };
       await Store.updateStatus(id, status, message);
       if (window.Sound) window.Sound.play(status === 'accepted' ? 'accept' : 'reject');
       window.toast(`${esc(cardName(id))} ${status}.`, status === 'accepted' ? 'success' : '');
+      $('#undo-last').classList.remove('hidden');
       c.disabled = false; closeDecide(); await load();
+    });
+
+    // bulk actions
+    $$('[data-bulk]', $('#bulk-bar')).forEach(b => b.addEventListener('click', async () => {
+      const act = b.dataset.bulk; const ids = [...selected]; if (!ids.length) return;
+      b.disabled = true;
+      for (const id of ids) {
+        const appObj = apps.find(x => x.id === id);
+        if (act === 'ban') { if (appObj) await Store.banUser(appObj); }
+        else await Store.updateStatus(id, act);
+      }
+      if (window.Sound) window.Sound.play(act === 'accepted' ? 'accept' : 'reject');
+      window.toast(`${ids.length} ${act === 'ban' ? 'banned' : act}.`, act === 'accepted' ? 'success' : '');
+      selected.clear(); b.disabled = false; await load();
+    }));
+    $('#bulk-clear').addEventListener('click', () => { selected.clear(); renderQueue(); });
+
+    // sort toggle
+    $('#sort-toggle').addEventListener('click', () => {
+      sortMode = sortMode === 'newest' ? 'rating' : 'newest';
+      $('#sort-toggle').innerHTML = sortMode === 'rating' ? '★ Top-rated' : '🕑 Newest';
+      renderQueue();
+    });
+
+    // undo last decision
+    $('#undo-last').addEventListener('click', async () => {
+      if (!lastDecision) return;
+      await Store.updateStatus(lastDecision.id, lastDecision.prev, '', false);
+      window.toast('Decision undone.', '');
+      lastDecision = null; $('#undo-last').classList.add('hidden'); await load();
     });
   }
 
@@ -144,14 +190,20 @@
   function roleLabel(r) { return (ROLES.find(x => x.id === r) || {}).label || r; }
 
   function filtered() {
-    return apps.filter(a => {
+    const out = apps.filter(a => {
       if (filter !== 'all' && a.status !== filter) return false;
       if (query) {
-        const hay = `${a.full_name} ${a.discord_username} ${a.roblox_username} ${roleLabel(a.role)}`.toLowerCase();
+        const hay = `${a.full_name} ${a.discord_username} ${a.roblox_username} ${roleLabel(a.role)} ${(a.tags || []).join(' ')}`.toLowerCase();
         if (!hay.includes(query)) return false;
       }
       return true;
     });
+    if (sortMode === 'rating') {
+      out.sort((a, b) => (b.rating || 0) - (a.rating || 0) || new Date(b.created_at) - new Date(a.created_at));
+    } else {
+      out.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    }
+    return out;
   }
 
   function renderQueue() {
@@ -170,10 +222,26 @@
       <article class="card applicant${banned ? ' applicant--banned' : ''}" data-id="${a.id}">
         <div class="applicant__main">
           <div class="applicant__head">
+            <input type="checkbox" class="applicant__select" data-id="${a.id}" ${selected.has(a.id) ? 'checked' : ''} aria-label="Select applicant" />
             <h3>${esc(a.full_name)}</h3>
             <span class="applicant__role">${meta ? meta.icon : ''} ${roleLabel(a.role)}</span>
             <span class="tag ${statusTag}">${a.status}</span>
             ${banned ? '<span class="tag tag--rejected">⛔ banned</span>' : ''}
+          </div>
+          <div class="applicant__rate">
+            <div class="stars" data-id="${a.id}">
+              ${[1, 2, 3, 4, 5].map(n => `<button type="button" class="star${(a.rating || 0) >= n ? ' on' : ''}" data-star="${n}" aria-label="${n} star">★</button>`).join('')}
+            </div>
+            <div class="applicant__tags">
+              ${(a.tags || []).map(t => `<span class="tag ${tagCls(t)}">${esc(tagLabel(t))}<button class="tag-x" data-rmtag="${esc(t)}" aria-label="remove tag" data-no-sound>×</button></span>`).join('')}
+              <details class="tag-add">
+                <summary data-no-sound>+ tag</summary>
+                <div class="tag-add__menu">
+                  ${TAGS.map(p => `<button type="button" class="tag-add__opt ${p.cls}" data-addtag="${p.id}">${p.label}</button>`).join('')}
+                  <input class="input" data-customtag placeholder="Custom tag, press Enter" />
+                </div>
+              </details>
+            </div>
           </div>
           <div class="applicant__meta">
             <span>Roblox: <b>${esc(a.roblox_username)}</b></span>
@@ -221,7 +289,44 @@
       const note = $('.applicant__note', card);
       let timer;
       note.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(() => { Store.setNote(id, note.value); }, 500); });
+
+      // star rating
+      $$('.star', card).forEach(s => s.addEventListener('click', async () => {
+        const a = apps.find(x => x.id === id); const cur = a ? (a.rating || 0) : 0;
+        const v = +s.dataset.star; const next = (cur === v) ? 0 : v;  // click the same star to clear
+        if (a) a.rating = next;
+        $$('.star', card).forEach(x => x.classList.toggle('on', +x.dataset.star <= next));
+        await Store.setRating(id, next); if (window.Sound) window.Sound.play('tick');
+      }));
+
+      // tags
+      const a0 = apps.find(x => x.id === id) || { tags: [] };
+      $$('[data-addtag]', card).forEach(b => b.addEventListener('click', async () => {
+        const t = b.dataset.addtag; const cur = a0.tags || [];
+        if (!cur.includes(t)) { a0.tags = [...cur, t]; await Store.setTags(id, a0.tags); renderQueue(); }
+      }));
+      $$('[data-rmtag]', card).forEach(b => b.addEventListener('click', async (e) => {
+        e.preventDefault(); a0.tags = (a0.tags || []).filter(x => x !== b.dataset.rmtag);
+        await Store.setTags(id, a0.tags); renderQueue();
+      }));
+      const ct = $('[data-customtag]', card);
+      if (ct) ct.addEventListener('keydown', async (e) => {
+        if (e.key !== 'Enter') return; e.preventDefault();
+        const t = ct.value.trim().slice(0, 24); if (!t || (a0.tags || []).includes(t)) { ct.value = ''; return; }
+        a0.tags = [...(a0.tags || []), t]; await Store.setTags(id, a0.tags); renderQueue();
+      });
+
+      // bulk select
+      const cb = $('.applicant__select', card);
+      if (cb) cb.addEventListener('change', () => { cb.checked ? selected.add(id) : selected.delete(id); updateBulkBar(); });
     });
+    updateBulkBar();
+  }
+
+  function updateBulkBar() {
+    const bar = $('#bulk-bar'); if (!bar) return;
+    bar.classList.toggle('hidden', selected.size === 0);
+    const c = $('#bulk-count'); if (c) c.textContent = `${selected.size} selected`;
   }
   function cardName(id) { const a = apps.find(x => x.id === id); return a ? a.full_name : 'Applicant'; }
 

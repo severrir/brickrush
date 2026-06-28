@@ -115,10 +115,11 @@
       };
       if (sb) {
         const { id, ...insert } = record;
-        const { data, error } = await sb.from('applications').insert(insert).select().single();
+        // insert only (applicants can't SELECT the row back — privacy)
+        const { error } = await sb.from('applications').insert(insert);
         if (error) throw error;
-        await this._pingNew(data || record);
-        return data || record;
+        await this._pingNew(record);
+        return record;
       }
       const apps = readLocal(APPS_KEY, []);
       apps.push(record);
@@ -172,6 +173,16 @@
       const apps = readLocal(APPS_KEY, []);
       const a = apps.find(x => x.id === id);
       if (a) { a.note = note; writeLocal(APPS_KEY, apps); }
+    },
+    async setRating(id, rating) {
+      if (sb) { await sb.from('applications').update({ rating }).eq('id', id); return; }
+      const apps = readLocal(APPS_KEY, []); const a = apps.find(x => x.id === id);
+      if (a) { a.rating = rating; writeLocal(APPS_KEY, apps); }
+    },
+    async setTags(id, tags) {
+      if (sb) { await sb.from('applications').update({ tags }).eq('id', id); return; }
+      const apps = readLocal(APPS_KEY, []); const a = apps.find(x => x.id === id);
+      if (a) { a.tags = tags; writeLocal(APPS_KEY, apps); }
     },
 
     /* ---- Bans: stop a Discord identity from applying again ---- */
@@ -267,6 +278,12 @@
 
     async findByDiscordId(discordId) {
       if (!discordId) return null;
+      if (sb) {
+        // applicants read only their own safe status via a security-definer RPC
+        const { data, error } = await sb.rpc('my_application');
+        if (error || !data || !data.length) return null;
+        return data[0];
+      }
       const all = await this.listApplications();
       return all.find(a => a.discord_id === discordId) || null;
     },
