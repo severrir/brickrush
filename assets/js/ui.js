@@ -136,11 +136,28 @@
     if (!slot || !window.Auth) return;
     const user = window.Auth.getUser();
     const here = (location.pathname.split('/').pop() || 'index.html') + location.search;
-    // Show the Admin button for any staff member (owner OR an added admin)
+    // Show the Admin button for any staff member (owner OR an added admin),
+    // and the Studio button for anyone with board access (staff, lead, or game member).
     let staff = Boolean(window.Auth.isOwner && window.Auth.isOwner());
-    if (!staff && user && window.Store && window.Store.isStaff) { try { staff = await window.Store.isStaff(); } catch (e) {} }
+    let studio = false;
+    if (user && window.Board) {
+      if (window.Board.live) {
+        try {
+          const a = await window.Board.myAccess();
+          if (a && a.is_staff) staff = true;
+          studio = Boolean(a && (a.is_staff || (a.leads || []).length || (a.game_ids || []).length));
+        } catch (e) {}
+      } else {
+        if (!staff && window.Store && window.Store.isStaff) { try { staff = await window.Store.isStaff(); } catch (e) {} }
+        studio = true; // demo playground — board is open locally
+      }
+    } else if (!staff && user && window.Store && window.Store.isStaff) {
+      try { staff = await window.Store.isStaff(); } catch (e) {}
+    }
     const adminBtn = staff
       ? `<a class="btn btn--sm nav-admin-btn" href="admin.html"><span class="nav-admin-btn__full">✳ Admin panel</span><span class="nav-admin-btn__short">✳</span></a>` : '';
+    const studioBtn = studio
+      ? `<a class="btn btn--ghost btn--sm nav-admin-btn" href="board.html"><span class="nav-admin-btn__full">✦ Studio</span><span class="nav-admin-btn__short">✦</span></a>` : '';
     if (!user) {
       slot.innerHTML = adminBtn + `<a class="btn btn--ghost btn--sm" href="login.html?return=${encodeURIComponent(here)}">Log in</a>`;
       return;
@@ -149,7 +166,7 @@
     const avatar = user.avatar
       ? `<img src="${escapeHtml(user.avatar)}" alt="" />`
       : `<span class="nav-account__fallback">${escapeHtml(initial)}</span>`;
-    slot.innerHTML = adminBtn + `
+    slot.innerHTML = studioBtn + adminBtn + `
       <div class="nav-account">
         <button class="nav-account__btn" aria-haspopup="true" aria-expanded="false">
           ${avatar}<span class="nav-account__name">${escapeHtml(user.global_name || user.username)}</span>

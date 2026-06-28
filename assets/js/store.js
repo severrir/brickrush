@@ -290,4 +290,230 @@
   };
 
   window.Store = Store;
+
+  /* =========================================================================
+     STUDIO BOARD — Trello-adapted task system (games → boards → columns → cards)
+     Same dual-mode contract as Store: Supabase when live, localStorage in demo.
+     ========================================================================= */
+  const BOARD_KEY = 'brickrush_board';
+  const DISCIPLINES = [
+    ['overview', 'Overview'],
+    ['scripter', 'Scripting'],
+    ['modeler_animator', 'Modeling & Animation'],
+    ['uiux', 'UI/UX'],
+  ];
+  const COLS = [['Backlog', false], ['To Do', false], ['In Progress', false], ['Review', false], ['Done', true]];
+  const uid = (p) => p + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const myId = () => (window.Auth && window.Auth.getUser && (window.Auth.getUser() || {}).id) || '';
+  const isDiscordId = (s) => /^\d{15,21}$/.test(s) || String(s).startsWith('demo');
+
+  /* ---- Demo (localStorage) state ---- */
+  function makeBoards(state, gameId) {
+    DISCIPLINES.forEach(([disc, name], di) => {
+      const bid = uid('b');
+      state.boards.push({ id: bid, game_id: gameId, discipline: disc, name, sort: di });
+      COLS.forEach(([cn, done], ci) => {
+        state.columns.push({ id: uid('c'), board_id: bid, game_id: gameId, name: cn, sort: ci, is_done: done });
+      });
+    });
+  }
+  function seedBoard() {
+    const st = { games: [], members: [], leads: [], boards: [], columns: [], tasks: [], comments: [] };
+    const gid = 'demo-game-neon';
+    const now = new Date().toISOString();
+    st.games.push({ id: gid, name: 'Neon Heist', description: 'Co-op heist obby set in a rain-slicked synthwave city.', cover_url: '', status: 'in_dev', roblox_url: '', sort: 0, archived: false, created_at: now, created_by: 'demo' });
+    makeBoards(st, gid);
+    st.members.push(
+      { id: uid('m'), game_id: gid, discord_id: 'demo-ava-001', username: 'avaScripts', avatar: '', discipline: 'scripter' },
+      { id: uid('m'), game_id: gid, discord_id: 'demo-theo-002', username: 'theoBuilds', avatar: '', discipline: 'modeler_animator' },
+    );
+    const col = (disc, name) => {
+      const b = st.boards.find(x => x.game_id === gid && x.discipline === disc);
+      return st.columns.find(c => c.board_id === b.id && c.name === name);
+    };
+    let s = 1000;
+    const mk = (disc, colName, t) => {
+      const c = col(disc, colName);
+      st.tasks.push({
+        id: uid('t'), column_id: c.id, board_id: c.board_id, game_id: gid, discipline: disc,
+        title: t.title, description: t.description || '', assignee_id: t.assignee_id || null,
+        assignee_name: t.assignee_name || '', assignee_avatar: '', priority: t.priority || 'medium',
+        due_date: t.due_date || null, labels: t.labels || [], attachment_url: t.attachment_url || '',
+        points: t.points || 0, checklist: t.checklist || [], sort: (s += 1000),
+        completed_at: c.is_done ? now : null, created_at: now, created_by: 'demo', updated_at: now,
+      });
+    };
+    mk('scripter', 'Done', { title: 'Lobby matchmaking + teleport', priority: 'high', points: 80, assignee_id: 'demo-ava-001', assignee_name: 'avaScripts' });
+    mk('scripter', 'In Progress', { title: 'Round-based heist loop', priority: 'high', points: 120, assignee_id: 'demo-ava-001', assignee_name: 'avaScripts', checklist: [{ text: 'Timer + phases', done: true }, { text: 'Loot spawns', done: false }, { text: 'Escape vehicle', done: false }] });
+    mk('scripter', 'To Do', { title: 'Anti-exploit pass on loot pickups', priority: 'urgent', points: 60 });
+    mk('scripter', 'Backlog', { title: 'Daily login rewards', priority: 'low', points: 30 });
+    mk('modeler_animator', 'Done', { title: 'Synthwave city block kit', priority: 'medium', points: 90, assignee_id: 'demo-theo-002', assignee_name: 'theoBuilds' });
+    mk('modeler_animator', 'In Progress', { title: 'Getaway car + rig', priority: 'high', points: 70, assignee_id: 'demo-theo-002', assignee_name: 'theoBuilds', checklist: [{ text: 'Model', done: true }, { text: 'Rig + drive anim', done: false }] });
+    mk('modeler_animator', 'To Do', { title: 'Guard NPC walk/idle/alert set', priority: 'medium', points: 50 });
+    mk('uiux', 'Review', { title: 'Heist HUD: timer, alarm, loot meter', priority: 'high', points: 55, attachment_url: 'https://www.figma.com/file/example' });
+    mk('uiux', 'To Do', { title: 'Results + payout screen', priority: 'medium', points: 40 });
+    mk('overview', 'In Progress', { title: 'Milestone: Playable vertical slice', priority: 'high', points: 0, description: 'One full heist start-to-finish with HUD + payout.' });
+    mk('overview', 'Backlog', { title: 'Milestone: Closed beta', priority: 'medium', points: 0 });
+    return st;
+  }
+  function readBoard() {
+    let st = readLocal(BOARD_KEY, null);
+    if (!st || !st.games) { st = seedBoard(); writeLocal(BOARD_KEY, st); }
+    return st;
+  }
+  const writeBoard = (st) => writeLocal(BOARD_KEY, st);
+
+  const Board = {
+    live: Boolean(sb),
+    disciplines: DISCIPLINES,
+
+    async myAccess() {
+      if (sb) {
+        const { data, error } = await sb.rpc('my_access');
+        if (error || !data) return { discord_id: myId(), is_staff: false, leads: [], game_ids: [] };
+        return data;
+      }
+      const st = readBoard();
+      return { discord_id: myId() || 'demo', is_staff: true, leads: [], game_ids: st.games.map(g => g.id) };
+    },
+
+    async listGames() {
+      if (sb) {
+        const { data, error } = await sb.rpc('games_overview');
+        if (error) throw error;
+        return data || [];
+      }
+      const st = readBoard();
+      const doneCols = new Set(st.columns.filter(c => c.is_done).map(c => c.id));
+      return st.games.filter(g => !g.archived).map(g => {
+        const ts = st.tasks.filter(t => t.game_id === g.id);
+        const done = ts.filter(t => doneCols.has(t.column_id));
+        return {
+          ...g, total: ts.length, done: done.length,
+          total_points: ts.reduce((a, t) => a + (t.points || 0), 0),
+          done_points: done.reduce((a, t) => a + (t.points || 0), 0),
+        };
+      }).sort((a, b) => a.sort - b.sort);
+    },
+
+    async createGame(g) {
+      const rec = {
+        name: g.name, description: g.description || '', cover_url: g.cover_url || '',
+        status: g.status || 'planning', roblox_url: g.roblox_url || '', sort: g.sort || 0, created_by: myId(),
+      };
+      if (sb) {
+        const { data, error } = await sb.from('games').insert(rec).select().single();
+        if (error) throw error;
+        return data;
+      }
+      const st = readBoard();
+      const gid = uid('g');
+      st.games.push({ id: gid, ...rec, archived: false, created_at: new Date().toISOString() });
+      makeBoards(st, gid);
+      writeBoard(st);
+      return st.games.find(x => x.id === gid);
+    },
+
+    async updateGame(id, patch) {
+      if (sb) { const { error } = await sb.from('games').update(patch).eq('id', id); if (error) throw error; return; }
+      const st = readBoard(); const g = st.games.find(x => x.id === id); if (g) Object.assign(g, patch); writeBoard(st);
+    },
+    archiveGame(id) { return this.updateGame(id, { archived: true }); },
+
+    async getBoards(gameId) {
+      if (sb) { const { data, error } = await sb.from('boards').select('*').eq('game_id', gameId).order('sort'); if (error) throw error; return data || []; }
+      return readBoard().boards.filter(b => b.game_id === gameId).sort((a, b) => a.sort - b.sort);
+    },
+    async getColumns(gameId) {
+      if (sb) { const { data, error } = await sb.from('board_columns').select('*').eq('game_id', gameId).order('sort'); if (error) throw error; return data || []; }
+      return readBoard().columns.filter(c => c.game_id === gameId).sort((a, b) => a.sort - b.sort);
+    },
+    async listTasks(gameId) {
+      if (sb) { const { data, error } = await sb.from('tasks').select('*').eq('game_id', gameId).order('sort'); if (error) throw error; return data || []; }
+      return readBoard().tasks.filter(t => t.game_id === gameId).sort((a, b) => a.sort - b.sort);
+    },
+
+    async getMembers(gameId) {
+      if (sb) { const { data, error } = await sb.from('game_members').select('*').eq('game_id', gameId).order('added_at'); if (error) throw error; return data || []; }
+      return readBoard().members.filter(m => m.game_id === gameId);
+    },
+    async addMember(gameId, m) {
+      const rec = { game_id: gameId, discord_id: String(m.discord_id || '').trim(), username: (m.username || '').trim(), avatar: m.avatar || '', discipline: m.discipline || 'all', added_by: myId() };
+      if (!isDiscordId(rec.discord_id)) return { error: 'That doesn’t look like a Discord ID — it should be a ~18-digit number.' };
+      if (sb) { const { error } = await sb.from('game_members').upsert(rec, { onConflict: 'game_id,discord_id' }); if (error) return { error: error.message }; return { ok: true }; }
+      const st = readBoard();
+      if (!st.members.some(x => x.game_id === gameId && x.discord_id === rec.discord_id)) st.members.push({ id: uid('m'), ...rec });
+      writeBoard(st); return { ok: true };
+    },
+    async removeMember(gameId, discordId) {
+      if (sb) { await sb.from('game_members').delete().eq('game_id', gameId).eq('discord_id', discordId); return; }
+      const st = readBoard(); st.members = st.members.filter(m => !(m.game_id === gameId && m.discord_id === discordId)); writeBoard(st);
+    },
+
+    async listLeads() {
+      if (sb) { const { data, error } = await sb.from('leads').select('*'); if (error) throw error; return data || []; }
+      return readBoard().leads;
+    },
+    async setLead(discordId, discipline, username) {
+      const rec = { discord_id: String(discordId || '').trim(), discipline, username: (username || '').trim(), added_by: myId() };
+      if (!isDiscordId(rec.discord_id)) return { error: 'That doesn’t look like a Discord ID.' };
+      if (sb) { const { error } = await sb.from('leads').upsert(rec, { onConflict: 'discord_id,discipline' }); if (error) return { error: error.message }; return { ok: true }; }
+      const st = readBoard();
+      if (!st.leads.some(l => l.discord_id === rec.discord_id && l.discipline === discipline)) st.leads.push(rec);
+      writeBoard(st); return { ok: true };
+    },
+    async removeLead(discordId, discipline) {
+      if (sb) { await sb.from('leads').delete().eq('discord_id', discordId).eq('discipline', discipline); return; }
+      const st = readBoard(); st.leads = st.leads.filter(l => !(l.discord_id === discordId && l.discipline === discipline)); writeBoard(st);
+    },
+
+    async createTask(t) {
+      const rec = {
+        column_id: t.column_id, board_id: t.board_id, game_id: t.game_id, discipline: t.discipline,
+        title: t.title, description: t.description || '', assignee_id: t.assignee_id || null,
+        assignee_name: t.assignee_name || '', assignee_avatar: t.assignee_avatar || '', priority: t.priority || 'medium',
+        due_date: t.due_date || null, labels: t.labels || [], attachment_url: t.attachment_url || '',
+        points: t.points || 0, checklist: t.checklist || [], sort: t.sort != null ? t.sort : 1000, created_by: myId(),
+      };
+      if (sb) { const { data, error } = await sb.from('tasks').insert(rec).select().single(); if (error) throw error; return data; }
+      const st = readBoard();
+      const row = { id: uid('t'), ...rec, completed_at: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+      st.tasks.push(row); writeBoard(st); return row;
+    },
+    async updateTask(id, patch) {
+      const p = { ...patch, updated_at: new Date().toISOString() };
+      if (sb) { const { data, error } = await sb.from('tasks').update(p).eq('id', id).select().single(); if (error) throw error; return data; }
+      const st = readBoard(); const t = st.tasks.find(x => x.id === id); if (t) Object.assign(t, p); writeBoard(st); return t;
+    },
+    async moveTask(id, columnId, sort, isDone) {
+      const p = { column_id: columnId, sort, completed_at: isDone ? new Date().toISOString() : null, updated_at: new Date().toISOString() };
+      if (sb) { const { error } = await sb.from('tasks').update(p).eq('id', id); if (error) throw error; return; }
+      const st = readBoard(); const t = st.tasks.find(x => x.id === id); if (t) Object.assign(t, p); writeBoard(st);
+    },
+    async deleteTask(id) {
+      if (sb) { await sb.from('tasks').delete().eq('id', id); return; }
+      const st = readBoard(); st.tasks = st.tasks.filter(t => t.id !== id); st.comments = st.comments.filter(c => c.task_id !== id); writeBoard(st);
+    },
+
+    async listComments(taskId) {
+      if (sb) { const { data, error } = await sb.from('task_comments').select('*').eq('task_id', taskId).order('created_at'); if (error) throw error; return data || []; }
+      return readBoard().comments.filter(c => c.task_id === taskId).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    },
+    async addComment(taskId, body) {
+      const u = (window.Auth && window.Auth.getUser && window.Auth.getUser()) || {};
+      const rec = { task_id: taskId, author_id: u.id || 'demo', author_name: u.global_name || u.username || 'member', author_avatar: u.avatar || '', body };
+      if (sb) { const { data, error } = await sb.from('task_comments').insert(rec).select().single(); if (error) throw error; return data; }
+      const st = readBoard(); const row = { id: uid('tc'), ...rec, created_at: new Date().toISOString() }; st.comments.push(row); writeBoard(st); return row;
+    },
+
+    realtime(gameId, onChange) {
+      if (!sb) return null;
+      const ch = sb.channel('board-' + gameId)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks', filter: 'game_id=eq.' + gameId }, onChange)
+        .subscribe();
+      return ch;
+    },
+  };
+
+  window.Board = Board;
 })();

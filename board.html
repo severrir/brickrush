@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Studio — BRICK RUSH</title>
+  <meta name="robots" content="noindex" />
+  <meta name="theme-color" content="#0B0C16" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="assets/img/logo.png" />
+  <link rel="apple-touch-icon" href="assets/img/logo.png" />
+  <link rel="stylesheet" href="assets/css/base.css" />
+  <link rel="stylesheet" href="assets/css/components.css" />
+  <link rel="stylesheet" href="assets/css/board.css" />
+</head>
+<body>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+    <linearGradient id="ig" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FF2E6E"/><stop offset="0.5" stop-color="#7C5CFF"/><stop offset="1" stop-color="#2BD2FF"/>
+    </linearGradient>
+  </defs></svg>
+
+  <!-- ===== NAV ===== -->
+  <nav class="nav scrolled">
+    <div class="nav__inner">
+      <a class="brand" href="index.html"><img src="assets/img/logo.png" alt="" />Brick<b>Rush</b></a>
+      <ul class="nav__links">
+        <li><a href="index.html">Site</a></li>
+        <li><a href="apply.html">Apply</a></li>
+        <li><a href="admin.html" id="nav-admin-link" class="hidden">Admin</a></li>
+      </ul>
+      <div class="nav__right">
+        <button class="sound-toggle" aria-label="Toggle sound"><span class="bar"></span><span class="bar"></span><span class="bar"></span></button>
+        <span data-auth-slot></span>
+        <button class="nav__burger" aria-label="Menu"><span></span></button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="board-main">
+
+    <!-- ===== GATE (loading / login / no access) ===== -->
+    <section class="board-gate" id="board-gate">
+      <div class="board-gate__card card">
+        <div class="board-gate__icon" id="gate-icon">✦</div>
+        <h2 id="gate-title">Loading the studio…</h2>
+        <p id="gate-msg">One sec — checking your access.</p>
+        <div id="gate-actions"></div>
+      </div>
+    </section>
+
+    <!-- ===== WORKSPACE ===== -->
+    <section class="board-app hidden" id="board-app">
+
+      <!-- Left rail: game switcher -->
+      <aside class="board-rail" id="board-rail">
+        <div class="rail-head">
+          <span class="eyebrow">Studio</span>
+          <h1>Games</h1>
+        </div>
+        <div class="demo-banner hidden" id="demo-banner">
+          ✳ <span><b>Demo mode</b> — local to this browser. Add Supabase keys in <b>config.js</b> to go live.</span>
+        </div>
+        <div class="game-list" id="game-list"></div>
+        <button class="btn btn--ghost btn--sm new-game-btn hidden" id="new-game" data-no-sound>＋ New game</button>
+      </aside>
+
+      <!-- Main column: the active game's boards -->
+      <div class="board-stage" id="board-stage">
+        <div class="board-head">
+          <div class="board-head__title">
+            <h2 id="game-name">—</h2>
+            <span class="game-status" id="game-status"></span>
+          </div>
+          <div class="board-head__meter">
+            <div class="meter" id="game-meter"></div>
+            <div class="meter-legend" id="game-meter-legend"></div>
+          </div>
+          <div class="board-head__actions">
+            <button class="btn btn--ghost btn--sm hidden" id="manage-game" data-no-sound>⚙ Manage</button>
+          </div>
+        </div>
+
+        <div class="board-tabs" id="board-tabs"></div>
+
+        <div class="board-canvas" id="board-canvas">
+          <div class="board-empty" id="board-empty"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===== Card detail modal ===== -->
+  <div class="modal-overlay hidden" id="card-modal">
+    <div class="modal modal--card" id="card-modal-panel"></div>
+  </div>
+
+  <!-- ===== Game create/edit modal ===== -->
+  <div class="modal-overlay hidden" id="game-modal">
+    <div class="modal">
+      <h3 id="game-modal-title">New game</h3>
+      <div class="field">
+        <label for="gm-name">Game name</label>
+        <input class="input" id="gm-name" placeholder="e.g. Neon Heist" />
+      </div>
+      <div class="field">
+        <label for="gm-desc">Short description</label>
+        <textarea class="textarea" id="gm-desc" placeholder="One line on what this game is."></textarea>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="gm-status">Status</label>
+          <select class="select" id="gm-status" data-no-sound>
+            <option value="planning">Planning</option>
+            <option value="in_dev">In development</option>
+            <option value="testing">Testing</option>
+            <option value="launched">Launched</option>
+            <option value="paused">Paused</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="gm-roblox">Roblox link <span class="opt">(optional)</span></label>
+          <input class="input" id="gm-roblox" placeholder="https://www.roblox.com/games/…" />
+        </div>
+      </div>
+      <div class="modal__actions">
+        <button class="btn btn--ghost btn--danger hidden" id="gm-archive" data-no-sound>Archive</button>
+        <span style="flex:1"></span>
+        <button class="btn btn--ghost" id="gm-cancel" data-no-sound>Cancel</button>
+        <button class="btn btn--primary" id="gm-save" data-no-sound>Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Manage (members + leads) modal ===== -->
+  <div class="modal-overlay hidden" id="manage-modal">
+    <div class="modal modal--wide">
+      <h3>Manage team</h3>
+
+      <div class="manage-section">
+        <h4>👥 Members of <span id="manage-game-name">this game</span></h4>
+        <p class="muted">Members see this game's whole board and can move tasks assigned to them.</p>
+        <div class="manage-add">
+          <input class="input" id="mm-id" placeholder="Discord user ID (≈18 digits)" inputmode="numeric" />
+          <input class="input" id="mm-name" placeholder="Name (optional)" />
+          <select class="select" id="mm-disc" data-no-sound>
+            <option value="scripter">Scripter</option>
+            <option value="modeler_animator">Modeler & Animator</option>
+            <option value="uiux">UI/UX Designer</option>
+            <option value="all">All-rounder</option>
+          </select>
+          <button class="btn btn--primary" id="mm-add" data-no-sound>Add</button>
+        </div>
+        <div id="members-list" class="chips-list"></div>
+      </div>
+
+      <div class="manage-section">
+        <h4>⭐ Discipline leads <span class="opt">(studio-wide)</span></h4>
+        <p class="muted">A lead can create and assign tasks on their discipline's boards across every game.</p>
+        <div class="manage-add">
+          <input class="input" id="ml-id" placeholder="Discord user ID" inputmode="numeric" />
+          <input class="input" id="ml-name" placeholder="Name (optional)" />
+          <select class="select" id="ml-disc" data-no-sound>
+            <option value="scripter">Head of Scripting</option>
+            <option value="modeler_animator">Head of Modeling & Animation</option>
+            <option value="uiux">Head of UI/UX</option>
+          </select>
+          <button class="btn btn--primary" id="ml-add" data-no-sound>Appoint</button>
+        </div>
+        <div id="leads-list" class="chips-list"></div>
+      </div>
+
+      <div class="modal__actions">
+        <button class="btn btn--ghost" id="manage-close" data-no-sound>Done</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/sound.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script src="assets/js/board.js"></script>
+</body>
+</html>
