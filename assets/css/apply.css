@@ -5,6 +5,7 @@
 
 .apply-main { padding-top: 7rem; padding-bottom: 5rem; min-height: 100svh; }
 .hp-field { position: absolute !important; left: -9999px !important; top: -9999px; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.turnstile-box { margin: 1.2rem 0 0; }
 .apply-shell { width: min(100% - 2.5rem, 880px); margin-inline: auto; }
 .apply-head { text-align: center; margin-bottom: 2.5rem; }
 .apply-head h1 { font-size: clamp(2rem, 5vw, 3.2rem); margin: 0.8rem 0 0.8rem; }

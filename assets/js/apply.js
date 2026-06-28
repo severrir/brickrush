@@ -161,8 +161,29 @@
   }
 
   /* ---------- Submit ---------- */
+  let turnstileToken = '';
+  function setupTurnstile() {
+    if (!CFG.turnstileSiteKey) return;
+    const box = $('#turnstile-box'); if (!box) return;
+    box.style.display = 'block';
+    const render = () => {
+      if (window.turnstile && !box.dataset.rendered) {
+        box.dataset.rendered = '1';
+        window.turnstile.render('#turnstile-box', { sitekey: CFG.turnstileSiteKey, theme: 'dark', callback: (t) => { turnstileToken = t; } });
+      } else if (!window.turnstile) setTimeout(render, 300);
+    };
+    render();
+  }
+
   async function submit() {
     if ($('#hp-field') && $('#hp-field').value) { showStatus('pending'); return; } // bot trap — looks accepted, silently dropped
+    if (CFG.turnstileSiteKey) {
+      if (!turnstileToken) { window.toast('Please complete the verification.', 'error'); return; }
+      try {
+        const { data } = await window.SB.functions.invoke('verify-turnstile', { body: { token: turnstileToken } });
+        if (data && data.ok === false) { window.toast('Verification failed — try again.', 'error'); if (window.turnstile) window.turnstile.reset(); turnstileToken = ''; return; }
+      } catch (e) {}
+    }
     capture(5);
     if (!state.why || state.why.length < 10) { setInvalid($('#f-why'), true); if (window.Sound) window.Sound.play('error'); return; }
     setInvalid($('#f-why'), false);
@@ -295,6 +316,7 @@
     wirePills('#avail-group', 'availability', '#avail-error');
     $('#form-wrap').addEventListener('input', saveDraft);
     $('#form-wrap').addEventListener('change', saveDraft);
+    setupTurnstile();
 
     $('#revshare-ack')?.addEventListener('change', (e) => { if (e.target.checked) setInvalid(e.target, false); if (window.Sound) window.Sound.play('tick'); });
 

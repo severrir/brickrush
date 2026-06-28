@@ -38,6 +38,11 @@ window.BRICKRUSH_CONFIG = {
   // Require Discord login before someone can submit an application?
   requireDiscordLogin: true,
 
+  /* Cloudflare Turnstile (invisible bot protection on the form).
+     Free widget at dash.cloudflare.com > Turnstile. Paste the SITE key here
+     (public); the SECRET goes in the verify-turnstile function. Blank = off. */
+  turnstileSiteKey: '',
+
   /* --- Backend (leave blank for offline-demo mode) ---
      Fill these in to switch the whole site to the real cloud database.
      1. Create a free project at https://supabase.com
