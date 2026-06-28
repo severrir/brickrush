@@ -10,6 +10,19 @@
   const bar = loader.querySelector('.loader__bar i');
   const pct = loader.querySelector('.loader__status b');
   const skip = loader.querySelector('.loader__skip');
+
+  // rotating tips
+  let tipTimer = null;
+  const tipEl = loader.querySelector('#loader-tip');
+  if (tipEl) {
+    const tips = ['We build worlds at the speed of play.', 'Speed without slop.', 'Own a piece of what you build.', 'Every brick counts.', 'Get in before day one.'];
+    let ti = Math.floor(Math.random() * tips.length);
+    tipEl.textContent = tips[ti];
+    tipTimer = setInterval(() => {
+      ti = (ti + 1) % tips.length; tipEl.style.opacity = '0';
+      setTimeout(() => { tipEl.textContent = tips[ti]; tipEl.style.opacity = '1'; }, 280);
+    }, 2400);
+  }
   const startT = performance.now();
   const MIN_VISIBLE = 450;   // avoid a jarring flash on fast loads
   const SAFETY = 9000;       // never hang
@@ -74,6 +87,7 @@
   function finish() {
     if (finished) return;
     finished = true;
+    if (tipTimer) clearInterval(tipTimer);
     loader.classList.add('done');
     document.body.classList.remove('loading');
     if (window.Sound && !window.Sound.muted) window.Sound.play('powerOn');

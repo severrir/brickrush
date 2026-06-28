@@ -7,7 +7,9 @@
 import * as THREE from 'three';
 
 const canvas = document.getElementById('hero-canvas');
-if (canvas) init();
+const liteMode = (() => { try { return localStorage.getItem('brickrush_lite') === '1'; } catch (e) { return false; } })();
+if (canvas && liteMode) { canvas.classList.add('hidden'); document.querySelector('.hero')?.classList.add('hero--lite'); }
+else if (canvas) init();
 
 function init() {
   let renderer;

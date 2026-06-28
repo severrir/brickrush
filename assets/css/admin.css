@@ -31,6 +31,21 @@
 .stat--accepted .n { color: var(--green); }
 .stat--rejected .n { color: var(--red); }
 
+/* ---- Insights ---- */
+.insights { margin-bottom: 1.6rem; }
+.insights h3 { font-size: 1.05rem; margin-bottom: 1.1rem; }
+.insights__grid { display: grid; grid-template-columns: auto 1.6fr 1fr; gap: 1.8rem; align-items: center; }
+.insight__l { font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 0.6rem; }
+.insight__n { font-family: var(--font-display); font-weight: 800; font-size: 2.7rem; line-height: 1; }
+.ibar { display: grid; grid-template-columns: 120px 1fr 26px; align-items: center; gap: 0.6rem; margin-bottom: 0.45rem; }
+.ibar__lab { font-size: 0.8rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ibar__track { height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.ibar__track i { display: block; height: 100%; background: var(--grad); border-radius: 99px; transition: width 0.6s var(--ease); }
+.ibar__n { font-family: var(--font-mono); font-size: 0.8rem; color: var(--text); text-align: right; }
+.spark { display: flex; align-items: flex-end; gap: 5px; height: 58px; }
+.spark__bar { flex: 1; background: var(--grad); border-radius: 3px; min-height: 8px; opacity: 0.85; }
+@media (max-width: 720px) { .insights__grid { grid-template-columns: 1fr; gap: 1.3rem; } }
+
 /* ---- Demand controls (most wanted) ---- */
 .demand-panel { padding: 1.5rem; margin-bottom: 2rem; }
 .demand-panel h3 { font-size: 1.1rem; margin-bottom: 0.3rem; }

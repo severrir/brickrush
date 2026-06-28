@@ -195,7 +195,33 @@
     const bans = await Store.listBans();
     bannedSet = new Set(bans.map(b => b.discord_id).filter(Boolean));
     apps = await Store.listApplications();
-    renderStats(); renderQueue();
+    renderStats(); renderInsights(); renderQueue();
+  }
+
+  function renderInsights() {
+    const el = $('#insights'); if (!el) return;
+    const total = apps.length;
+    const decided = apps.filter(a => a.status !== 'pending').length;
+    const acc = apps.filter(a => a.status === 'accepted').length;
+    const rate = decided ? Math.round((acc / decided) * 100) : 0;
+    const byRole = ROLES.map(r => ({ label: r.label, n: apps.filter(a => a.role === r.id).length }));
+    const max = Math.max(1, ...byRole.map(r => r.n));
+    const days = [...Array(7)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - (6 - i)); return d; });
+    const dayCounts = days.map(d => apps.filter(a => new Date(a.created_at).toDateString() === d.toDateString()).length);
+    const dmax = Math.max(1, ...dayCounts);
+    el.innerHTML = `
+      <h3>Insights</h3>
+      <div class="insights__grid">
+        <div class="insight"><div class="insight__n gradient-text">${rate}%</div><div class="insight__l">Acceptance rate</div></div>
+        <div class="insight insight--bars">
+          <div class="insight__l">By role</div>
+          ${byRole.map(r => `<div class="ibar"><span class="ibar__lab">${esc(r.label)}</span><span class="ibar__track"><i style="width:${(r.n / max * 100)}%"></i></span><span class="ibar__n">${r.n}</span></div>`).join('')}
+        </div>
+        <div class="insight insight--spark">
+          <div class="insight__l">Last 7 days</div>
+          <div class="spark">${dayCounts.map((n, i) => `<span class="spark__bar" style="height:${Math.max(8, n / dmax * 100)}%" title="${days[i].toLocaleDateString(undefined, { weekday: 'short' })}: ${n}"></span>`).join('')}</div>
+        </div>
+      </div>`;
   }
 
   /* ---------- Stats ---------- */

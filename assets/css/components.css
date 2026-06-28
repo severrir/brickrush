@@ -215,8 +215,11 @@
 .footer__col a { display: block; color: var(--text-muted); font-size: 0.9rem; padding: 0.25rem 0; transition: color 0.2s; }
 .footer__col a:hover { color: var(--magenta); }
 .footer__bottom { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--line);
-  display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem;
+  display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; align-items: center;
   color: var(--text-faint); font-size: 0.82rem; font-family: var(--font-mono); }
+.lite-toggle { font-family: var(--font-mono); font-size: 0.82rem; color: var(--text-faint); transition: color 0.2s; }
+.lite-toggle:hover { color: var(--magenta); }
+.lite-toggle b { color: var(--text-muted); }
 
 /* ---------- Custom cursor (desktop) ---------- */
 .has-cursor { cursor: none; }

@@ -38,6 +38,7 @@
 .loader__status { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.22em;
   text-transform: uppercase; color: var(--text-faint); }
 .loader__status b { color: var(--magenta); }
+.loader__tip { font-size: 0.82rem; color: var(--text-muted); transition: opacity 0.3s; min-height: 1.2em; text-align: center; max-width: 300px; }
 .loader__skip { margin-top: 0.4rem; font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.18em;
   text-transform: uppercase; color: var(--text-faint); border: 1px solid var(--line); padding: 0.45rem 1rem;
   border-radius: var(--r-pill); transition: color 0.2s, border-color 0.2s; }

@@ -162,6 +162,7 @@
 
   /* ---------- Submit ---------- */
   async function submit() {
+    if ($('#hp-field') && $('#hp-field').value) { showStatus('pending'); return; } // bot trap — looks accepted, silently dropped
     capture(5);
     if (!state.why || state.why.length < 10) { setInvalid($('#f-why'), true); if (window.Sound) window.Sound.play('error'); return; }
     setInvalid($('#f-why'), false);

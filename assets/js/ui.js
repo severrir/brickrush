@@ -171,8 +171,16 @@
   // QA mode (?audit): force all entrance animations to final state for screenshots
   if (/[?&]audit\b/.test(location.search)) document.documentElement.classList.add('audit');
 
+  function liteToggle() {
+    const btn = document.getElementById('lite-toggle');
+    if (!btn) return;
+    const on = localStorage.getItem('brickrush_lite') === '1';
+    btn.innerHTML = 'Lite mode: <b>' + (on ? 'on' : 'off') + '</b>';
+    btn.addEventListener('click', () => { localStorage.setItem('brickrush_lite', on ? '0' : '1'); location.reload(); });
+  }
+
   document.addEventListener('DOMContentLoaded', async () => {
     if (window.Auth && window.Auth.init) { try { await window.Auth.init(); } catch (e) {} }
-    wireLinks(); nav(); reveals(); counters(); soundToggle(); cursor(); authNav();
+    wireLinks(); nav(); reveals(); counters(); soundToggle(); cursor(); authNav(); liteToggle();
   });
 })();
