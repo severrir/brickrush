@@ -131,12 +131,15 @@
   /* ---------- Year ---------- */
   /* ---------- Nav auth state (Log in  ↔  account menu) ---------- */
   const escapeHtml = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  function authNav() {
+  async function authNav() {
     const slot = document.querySelector('[data-auth-slot]');
     if (!slot || !window.Auth) return;
     const user = window.Auth.getUser();
     const here = (location.pathname.split('/').pop() || 'index.html') + location.search;
-    const adminBtn = (window.Auth.isOwner && window.Auth.isOwner())
+    // Show the Admin button for any staff member (owner OR an added admin)
+    let staff = Boolean(window.Auth.isOwner && window.Auth.isOwner());
+    if (!staff && user && window.Store && window.Store.isStaff) { try { staff = await window.Store.isStaff(); } catch (e) {} }
+    const adminBtn = staff
       ? `<a class="btn btn--sm nav-admin-btn" href="admin.html"><span class="nav-admin-btn__full">✳ Admin panel</span><span class="nav-admin-btn__short">✳</span></a>` : '';
     if (!user) {
       slot.innerHTML = adminBtn + `<a class="btn btn--ghost btn--sm" href="login.html?return=${encodeURIComponent(here)}">Log in</a>`;
