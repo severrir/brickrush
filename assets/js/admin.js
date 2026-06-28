@@ -76,6 +76,20 @@
     // decision modal
     $('#decide-cancel').addEventListener('click', closeDecide);
     $('#decide-modal').addEventListener('click', (e) => { if (e.target.id === 'decide-modal') closeDecide(); });
+    $('#decide-template').addEventListener('change', (e) => {
+      const tpls = getTemplates(); const i = e.target.value;
+      if (i !== '' && tpls[i]) $('#decide-msg').value = tpls[i].text;
+      e.target.value = '';
+    });
+    $('#decide-save-tpl').addEventListener('click', () => {
+      const text = $('#decide-msg').value.trim();
+      if (!text) { window.toast('Type a message first.', 'error'); return; }
+      const tpls = getTemplates();
+      tpls.push({ label: text.slice(0, 28) + (text.length > 28 ? '…' : ''), text });
+      try { localStorage.setItem(TPL_KEY, JSON.stringify(tpls)); } catch (e) {}
+      window.toast('Saved as a template.', 'success');
+      renderDecideQuick(pendingDecision ? pendingDecision.status : 'accepted');
+    });
     $('#decide-confirm').addEventListener('click', async () => {
       if (!pendingDecision) return;
       const { id, status } = pendingDecision;
@@ -365,6 +379,22 @@
   }
   function cardName(id) { const a = apps.find(x => x.id === id); return a ? a.full_name : 'Applicant'; }
 
+  /* ---------- Quick-fill chips + saved templates ---------- */
+  const ACCEPT_CHIPS = ['Welcome aboard! 🎉', 'Loved your portfolio.', 'Let’s set up your interview on Discord.'];
+  const REJECT_CHIPS = ['Not the right fit right now.', 'Sharpen your portfolio and apply again anytime.', 'We need more experience for this role currently.'];
+  const TPL_KEY = 'brickrush_msg_templates';
+  const getTemplates = () => { try { return JSON.parse(localStorage.getItem(TPL_KEY)) || []; } catch (e) { return []; } };
+  function renderDecideQuick(status) {
+    const chips = status === 'accepted' ? ACCEPT_CHIPS : REJECT_CHIPS;
+    $('#decide-chips').innerHTML = chips.map(t => `<button type="button" class="decide-chip" data-chip data-no-sound>${esc(t)}</button>`).join('');
+    $$('#decide-chips [data-chip]').forEach(b => b.addEventListener('click', () => {
+      const ta = $('#decide-msg'); ta.value = (ta.value ? ta.value.trim() + ' ' : '') + b.textContent; ta.focus();
+    }));
+    const tpls = getTemplates();
+    $('#decide-template').innerHTML = '<option value="">Saved templates…</option>' +
+      tpls.map((t, i) => `<option value="${i}">${esc(t.label)}</option>`).join('');
+  }
+
   /* ---------- Accept/reject with a message ---------- */
   function openDecide(id, status) {
     pendingDecision = { id, status };
@@ -374,6 +404,7 @@
       ? 'Add a welcome or next-steps message they’ll see (optional).'
       : 'Add a reason or note they’ll see (optional).';
     $('#decide-msg').value = '';
+    renderDecideQuick(status);
     const c = $('#decide-confirm');
     c.textContent = status === 'accepted' ? 'Accept' : 'Reject';
     c.className = 'btn ' + (status === 'accepted' ? 'btn--accept-confirm' : 'btn--reject-confirm');

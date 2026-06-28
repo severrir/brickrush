@@ -21,6 +21,41 @@
   const TOTAL = 5;
   const escapeHtml = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+  /* ---------- Resume-a-draft ---------- */
+  const DRAFT_KEY = 'brickrush_draft';
+  function saveDraft() {
+    const v = (s) => { const el = $(s); return el ? el.value : ''; };
+    const c = (s) => { const el = $(s); return el ? el.checked : false; };
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({
+        role: state.role, exp: state.experience, avail: state.availability,
+        name: v('#f-name'), roblox: v('#f-roblox'), discord: v('#f-discord'),
+        portfolio: v('#f-portfolio'), rolespec: v('#f-rolespecific'), projects: v('#f-projects'),
+        tz: v('#f-timezone'), why: v('#f-why'), age: c('#age-ok'), joined: c('#joined-discord'), rsack: c('#revshare-ack'),
+      }));
+    } catch (e) {}
+  }
+  function clearDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch (e) {} }
+  function restoreDraft() {
+    let d; try { d = JSON.parse(localStorage.getItem(DRAFT_KEY)); } catch (e) {}
+    if (!d) return false;
+    const set = (s, val) => { const el = $(s); if (el && val != null) el.value = val; };
+    set('#f-name', d.name); set('#f-roblox', d.roblox); set('#f-discord', d.discord);
+    set('#f-portfolio', d.portfolio); set('#f-rolespecific', d.rolespec); set('#f-projects', d.projects);
+    set('#f-timezone', d.tz); set('#f-why', d.why);
+    if ($('#age-ok')) $('#age-ok').checked = !!d.age;
+    if ($('#joined-discord')) $('#joined-discord').checked = !!d.joined;
+    if ($('#revshare-ack')) $('#revshare-ack').checked = !!d.rsack;
+    if (d.role) selectRole(d.role);
+    const pill = (grp, val, key) => {
+      if (!val) return; state[key] = val;
+      const p = $(`${grp} .pill-opt[data-val="${val}"]`);
+      if (p) { $$(`${grp} .pill-opt`).forEach(x => x.classList.remove('active')); p.classList.add('active'); }
+    };
+    pill('#exp-group', d.exp, 'experience'); pill('#avail-group', d.avail, 'availability');
+    return Object.values(d).some(Boolean);
+  }
+
   /* ---------- Roles ---------- */
   async function renderRoles() {
     let demand = {};
@@ -51,6 +86,7 @@
     const meta = ROLES.find(r => r.id === id);
     $('#rolespecific-label').textContent = meta.questionLabel;
     $('#s1-next').disabled = false;
+    saveDraft();
   }
 
   /* ---------- Stepper ---------- */
@@ -143,6 +179,7 @@
         why: state.why, age_ok: state.age_ok,
       });
       confetti();
+      clearDraft();
       if (window.Sound) window.Sound.play('success');
       showStatus('pending');
     } catch (e) {
@@ -151,11 +188,25 @@
     }
   }
 
+  function renderTimeline(status) {
+    const el = $('#status-timeline'); if (!el) return;
+    const result = status === 'accepted' ? 'Accepted' : status === 'rejected' ? 'Decision' : 'Result';
+    const steps = [
+      { label: 'Applied', state: 'done' },
+      { label: status === 'pending' ? 'Under review' : 'Reviewed', state: status === 'pending' ? 'active' : 'done' },
+      { label: result, state: status === 'accepted' ? 'done accepted' : status === 'rejected' ? 'done rejected' : 'idle' },
+    ];
+    el.innerHTML = steps.map((s, i) =>
+      `<div class="tl-step ${s.state}">${i ? '<span class="tl-line"></span>' : ''}<span class="tl-dot"></span><span class="tl-label">${s.label}</span></div>`
+    ).join('');
+  }
+
   function showStatus(status, when, message, reviewerName, reviewerAvatar) {
     $('#form-wrap').classList.add('hidden');
     $('.stepper').classList.add('hidden');
     const screen = $('#status-screen');
     screen.classList.remove('hidden');
+    renderTimeline(status);
     const extra = $('#status-extra');
     if (message) { extra.textContent = message; extra.classList.remove('hidden'); }
     else extra.classList.add('hidden');
@@ -209,6 +260,7 @@
       p.classList.add('active'); state[key] = p.dataset.val;
       if (errId) $(errId).style.display = 'none';
       if (window.Sound) window.Sound.play('tick');
+      saveDraft();
     }));
   }
 
@@ -240,6 +292,8 @@
     await renderRoles();
     wirePills('#exp-group', 'experience', '#exp-error');
     wirePills('#avail-group', 'availability', '#avail-error');
+    $('#form-wrap').addEventListener('input', saveDraft);
+    $('#form-wrap').addEventListener('change', saveDraft);
 
     $('#revshare-ack')?.addEventListener('change', (e) => { if (e.target.checked) setInvalid(e.target, false); if (window.Sound) window.Sound.play('tick'); });
 
@@ -258,6 +312,9 @@
     const params = new URLSearchParams(location.search);
     const pre = params.get('role');
     if (pre && ROLES.some(r => r.id === pre)) selectRole(pre);
+
+    if (params.has('fresh')) clearDraft();
+    else if (restoreDraft()) window.toast('Resumed your saved draft.', '');
 
     const user = Auth.getUser();
     if (user) applyUser(user);

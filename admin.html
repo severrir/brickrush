@@ -145,8 +145,15 @@
       <h3 id="decide-title">Decision</h3>
       <p class="muted" id="decide-sub" style="font-size:0.88rem;margin-bottom:1.2rem"></p>
       <div class="field">
-        <label for="decide-msg">Message to applicant <span style="color:var(--text-faint);font-weight:400">(optional — they'll see this on their status)</span></label>
+        <label for="decide-msg">Message to applicant <span style="color:var(--text-faint);font-weight:400">(optional — they'll see this on their status + DM)</span></label>
         <textarea class="textarea" id="decide-msg" placeholder="e.g. Loved your portfolio — hop in the Discord and we'll set up your interview."></textarea>
+      </div>
+      <div class="decide-quick">
+        <div class="decide-chips" id="decide-chips"></div>
+        <div class="decide-tpl">
+          <select class="select" id="decide-template" data-no-sound><option value="">Saved templates…</option></select>
+          <button class="btn btn--ghost btn--sm" id="decide-save-tpl" type="button" data-no-sound>Save as template</button>
+        </div>
       </div>
       <div class="modal__actions">
         <button class="btn btn--ghost" id="decide-cancel" data-no-sound>Cancel</button>

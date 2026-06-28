@@ -134,6 +134,24 @@
 .status-badge.pending { background: rgba(255,194,75,0.12); color: var(--amber); }
 .status-badge.accepted { background: rgba(54,226,160,0.12); color: var(--green); }
 .status-badge.rejected { background: rgba(255,77,109,0.12); color: var(--red); }
+/* status timeline */
+.status-timeline { display: flex; align-items: flex-start; justify-content: center; margin: 0 auto 1.9rem; max-width: 380px; }
+.status-timeline.hidden { display: none; }
+.tl-step { position: relative; display: flex; flex-direction: column; align-items: center; flex: 1; }
+.tl-line { position: absolute; top: 7px; right: 50%; width: 100%; height: 2px; background: var(--line-strong); }
+.tl-step.done .tl-line, .tl-step.active .tl-line { background: var(--magenta); }
+.tl-dot { width: 16px; height: 16px; border-radius: 50%; background: var(--surface-2); border: 2px solid var(--line-strong); z-index: 1; }
+.tl-step.done .tl-dot { background: var(--magenta); border-color: var(--magenta); }
+.tl-step.active .tl-dot { border-color: var(--magenta); animation: pulseDot 1.8s infinite; }
+.tl-step.accepted .tl-dot { background: var(--green); border-color: var(--green); }
+.tl-step.rejected .tl-dot { background: var(--red); border-color: var(--red); }
+.tl-label { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--text-faint); margin-top: 0.5rem; text-align: center; }
+.tl-step.done .tl-label, .tl-step.active .tl-label { color: var(--text-muted); }
+.tl-step.accepted .tl-label { color: var(--green); }
+.tl-step.rejected .tl-label { color: var(--red); }
+@keyframes pulseDot { 0%, 100% { box-shadow: 0 0 0 4px rgba(255,46,110,0.18); } 50% { box-shadow: 0 0 0 7px rgba(255,46,110,0.04); } }
+
 .status-screen h2 { font-size: 1.9rem; margin-bottom: 0.6rem; }
 .status-screen p { color: var(--text-muted); margin-bottom: 1.8rem; }
 .status-meta { font-family: var(--font-mono); font-size: 0.74rem; color: var(--text-faint);
