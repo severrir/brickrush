@@ -57,11 +57,15 @@
       <aside class="board-rail" id="board-rail">
         <div class="rail-head">
           <span class="eyebrow">Studio</span>
-          <h1>Games</h1>
+          <h1>Workspace</h1>
         </div>
+        <button class="rail-nav" id="mytasks-btn" data-no-sound>
+          <span>◎ My tasks</span><span class="rail-nav__n hidden" id="mytasks-count">0</span>
+        </button>
         <div class="demo-banner hidden" id="demo-banner">
           ✳ <span><b>Demo mode</b> — local to this browser. Add Supabase keys in <b>config.js</b> to go live.</span>
         </div>
+        <div class="rail-sub">Games</div>
         <div class="game-list" id="game-list"></div>
         <button class="btn btn--ghost btn--sm new-game-btn hidden" id="new-game" data-no-sound>＋ New game</button>
       </aside>
@@ -78,6 +82,7 @@
             <div class="meter-legend" id="game-meter-legend"></div>
           </div>
           <div class="board-head__actions">
+            <button class="btn btn--ghost btn--sm" id="coins-btn" data-no-sound>◆ Coins</button>
             <button class="btn btn--ghost btn--sm hidden" id="manage-game" data-no-sound>⚙ Manage</button>
           </div>
         </div>
@@ -174,6 +179,17 @@
       <div class="modal__actions">
         <button class="btn btn--ghost" id="manage-close" data-no-sound>Done</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ===== Coins / rev-share ledger ===== -->
+  <div class="modal-overlay hidden" id="coins-modal">
+    <div class="modal modal--wide">
+      <h3>◆ Coins &amp; rev-share</h3>
+      <p class="muted" id="coins-sub">Coins earned on finished tasks roll up toward each developer’s revenue share.</p>
+      <div class="ledger" id="ledger"></div>
+      <p class="ledger-note" id="ledger-note"></p>
+      <div class="modal__actions"><span style="flex:1"></span><button class="btn btn--ghost" id="coins-close" data-no-sound>Done</button></div>
     </div>
   </div>
 

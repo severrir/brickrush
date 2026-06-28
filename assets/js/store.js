@@ -304,7 +304,10 @@
   ];
   const COLS = [['Backlog', false], ['To Do', false], ['In Progress', false], ['Review', false], ['Done', true]];
   const uid = (p) => p + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-  const myId = () => (window.Auth && window.Auth.getUser && (window.Auth.getUser() || {}).id) || '';
+  // In demo mode there's no Discord login, so we stand in as a seeded member
+  // (Ava) — that makes "My tasks" and the coin ledger feel populated offline.
+  const DEMO_ME = 'demo-ava-001';
+  const myId = () => (window.Auth && window.Auth.getUser && (window.Auth.getUser() || {}).id) || (sb ? '' : DEMO_ME);
   const isDiscordId = (s) => /^\d{15,21}$/.test(s) || String(s).startsWith('demo');
 
   /* ---- Demo (localStorage) state ---- */
@@ -504,6 +507,52 @@
       const rec = { task_id: taskId, author_id: u.id || 'demo', author_name: u.global_name || u.username || 'member', author_avatar: u.avatar || '', body };
       if (sb) { const { data, error } = await sb.from('task_comments').insert(rec).select().single(); if (error) throw error; return data; }
       const st = readBoard(); const row = { id: uid('tc'), ...rec, created_at: new Date().toISOString() }; st.comments.push(row); writeBoard(st); return row;
+    },
+
+    /* ---- Coins ledger: who's earned what (drives rev-share) ---- */
+    async coinLedger() {
+      if (sb) { const { data, error } = await sb.rpc('coin_ledger'); if (error) throw error; return data || []; }
+      const st = readBoard();
+      const doneCols = new Set(st.columns.filter(c => c.is_done).map(c => c.id));
+      const map = {};
+      st.tasks.filter(t => t.assignee_id).forEach(t => {
+        const m = map[t.assignee_id] || (map[t.assignee_id] = { discord_id: t.assignee_id, username: t.assignee_name, avatar: t.assignee_avatar || '', earned: 0, pending: 0, tasks_done: 0, tasks_open: 0 });
+        if (doneCols.has(t.column_id)) { m.earned += t.points || 0; m.tasks_done++; }
+        else { m.pending += t.points || 0; m.tasks_open++; }
+      });
+      return Object.values(map).sort((a, b) => b.earned - a.earned || b.pending - a.pending);
+    },
+
+    /* ---- Everything assigned to me, across all games ---- */
+    async myTasks() {
+      if (sb) { const { data, error } = await sb.rpc('my_tasks'); if (error) throw error; return data || []; }
+      const me = myId();
+      return readBoard().tasks.filter(t => t.assignee_id === me);
+    },
+
+    /* ---- Discord notifications (best-effort; dormant until configured) ---- */
+    async notifyTask(kind, t, gameName) {
+      const by = (window.Auth && window.Auth.getUser && window.Auth.getUser()) || {};
+      const byName = by.global_name || by.username || 'Someone';
+      const g = gameName ? ` · ${gameName}` : '';
+      if (kind === 'assign') {
+        notifyDiscord(`📌 **${byName}** assigned **${t.title}** to **${t.assignee_name || 'a developer'}**${g}`);
+        if (sb && t.assignee_id && !String(t.assignee_id).startsWith('demo')) {
+          try {
+            await sb.functions.invoke('notify-task', {
+              body: {
+                discord_id: t.assignee_id, title: t.title, game: gameName || '',
+                by_name: byName, by_avatar: by.avatar || '',
+                url: location.origin + location.pathname.replace(/[^/]*$/, 'board.html'),
+              },
+            });
+          } catch (e) { /* DM is best-effort */ }
+        }
+      } else if (kind === 'review') {
+        notifyDiscord(`🔎 **Ready for review** — ${t.title}${g}${t.assignee_name ? ` (by ${t.assignee_name})` : ''}`);
+      } else if (kind === 'done') {
+        notifyDiscord(`✅ **Done** — ${t.title}${g}${t.assignee_name ? ` (${t.assignee_name})` : ''}`);
+      }
     },
 
     realtime(gameId, onChange) {

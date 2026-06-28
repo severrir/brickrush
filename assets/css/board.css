@@ -198,6 +198,52 @@
 .btn--danger { color: var(--red); border-color: color-mix(in srgb, var(--red) 40%, transparent); }
 .btn--danger:hover { background: var(--red); color: #fff; }
 
+/* ---------- Rail nav (My tasks) ---------- */
+.rail-nav {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+  width: 100%; padding: 0.7rem 0.9rem; border-radius: var(--r-md); font-weight: 700; font-size: 0.92rem;
+  background: var(--surface); border: 1px solid var(--line); color: var(--text);
+  transition: border-color 0.2s, background 0.2s, transform 0.2s var(--ease);
+}
+.rail-nav:hover { border-color: var(--line-strong); transform: translateY(-1px); }
+.rail-nav.is-active { border-color: transparent; box-shadow: var(--glow-pink); background: var(--surface-2); }
+.rail-nav__n { min-width: 22px; height: 22px; padding: 0 0.4rem; border-radius: 999px; background: var(--grad); color: #fff; font-size: 0.74rem; font-weight: 800; display: grid; place-items: center; }
+.rail-sub { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-faint); padding: 0.2rem 0.2rem; }
+
+/* ---------- My tasks list ---------- */
+.board-canvas--list { flex-direction: column; flex-wrap: nowrap; gap: 1.4rem; overflow-y: auto; align-items: stretch; }
+.mt-group { display: flex; flex-direction: column; gap: 0.5rem; max-width: 760px; }
+.mt-group__h { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.2rem; }
+.mt-item {
+  position: relative; display: flex; align-items: center; gap: 0.8rem; text-align: left;
+  padding: 0.75rem 1rem 0.75rem 1.1rem; border-radius: var(--r-md); background: var(--surface); border: 1px solid var(--line);
+  transition: border-color 0.2s, transform 0.15s var(--ease);
+}
+.mt-item:hover { border-color: var(--line-strong); transform: translateX(2px); }
+.mt-item__pri { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--pri); border-radius: 3px 0 0 3px; }
+.mt-item__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.2rem; }
+.mt-item__main b { font-weight: 600; font-size: 0.92rem; }
+.mt-item__meta { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted); }
+.mt-pri { font-family: var(--font-mono); font-size: 0.74rem; font-weight: 700; white-space: nowrap; }
+.mt-done { font-size: 0.74rem; font-weight: 700; color: var(--green); white-space: nowrap; }
+.mt-item.is-done b { color: var(--text-muted); text-decoration: line-through; }
+
+/* ---------- Coins ledger ---------- */
+.ledger { display: flex; flex-direction: column; gap: 0.2rem; margin-top: 0.5rem; }
+.ledger-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; align-items: center; gap: 0.6rem; padding: 0.6rem 0.7rem; border-radius: var(--r-sm); font-size: 0.88rem; }
+.ledger-row span:not(.ldg-dev):not(.ava) { text-align: right; font-family: var(--font-mono); }
+.ledger-row--head { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-faint); font-family: var(--font-mono); }
+.ledger-row--head span { font-family: var(--font-mono); }
+.ledger-row:not(.ledger-row--head):nth-child(odd) { background: var(--surface-2); }
+.ldg-dev { display: flex; align-items: center; gap: 0.55rem; font-weight: 600; }
+.ldg-dev .ava { width: 26px; height: 26px; }
+.ldg-earned { color: var(--violet); font-weight: 700; }
+.ldg-pending { color: var(--text-muted); }
+.ldg-share { color: var(--green); font-weight: 700; }
+.ledger-row--total { border-top: 1px solid var(--line-strong); margin-top: 0.3rem; padding-top: 0.8rem; font-weight: 800; }
+.ledger-row--total span { font-weight: 800; }
+.ledger-note { font-size: 0.76rem; color: var(--text-faint); margin-top: 0.9rem; line-height: 1.5; }
+
 /* ---------- Responsive ---------- */
 @media (max-width: 900px) {
   .board-app { grid-template-columns: 1fr; height: auto; min-height: calc(100vh - 65px); }
@@ -214,4 +260,7 @@
   .card-grid, .field-row { grid-template-columns: 1fr; }
   .board-tabs { padding: 0.6rem 1rem 0; }
   .col { width: 84vw; flex-basis: 84vw; }
+  .ledger-row { grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 0.3rem; padding: 0.5rem 0.4rem; font-size: 0.78rem; }
+  .ldg-dev .ava { width: 20px; height: 20px; }
+  .board-canvas--list { padding: 1rem; }
 }

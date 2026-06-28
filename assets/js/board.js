@@ -31,6 +31,8 @@
   let activeDisc = 'overview';
   let rt = null;
   let dragId = null;
+  let view = 'board';        // 'board' | 'mytasks'
+  let myTaskList = [];
 
   /* ---- permissions (mirror RLS) ---- */
   const canManage = () => ACCESS.is_staff;
@@ -58,6 +60,7 @@
     }
     wireGlobal();
     await loadGames();
+    refreshMyCount();
   }
 
   function gate(kind) {
@@ -131,6 +134,10 @@
 
   async function selectGame(id) {
     game = GAMES.find(g => g.id === id) || game;
+    view = 'board';
+    const mtb = $('#mytasks-btn'); if (mtb) mtb.classList.remove('is-active');
+    $('#board-canvas').classList.remove('board-canvas--list');
+    if (canManage()) $('#manage-game').classList.remove('hidden');
     [boards, columns, tasks, members] = await Promise.all([
       window.Board.getBoards(id), window.Board.getColumns(id),
       window.Board.listTasks(id), window.Board.getMembers(id),
@@ -294,6 +301,7 @@
     const col = columns.find(c => c.id === colId);
     const task = tasks.find(t => t.id === id);
     if (!task || !col) return;
+    const oldColId = task.column_id;
     // figure new neighbours from the DOM order
     const order = $$('.task-card', body).map(el => el.dataset.task);
     const idx = order.indexOf(id);
@@ -310,6 +318,7 @@
       await window.Board.moveTask(id, colId, newSort, col.is_done);
       if (window.Sound) window.Sound.play('tick');
       refreshAfterMutation();
+      fireMoveNotifs(task, oldColId, col);
     } catch (e) { toast('Move failed — ' + e.message, 'error'); selectGame(game.id); }
   }
 
@@ -353,9 +362,111 @@
     renderGameList();
   }
 
+  /* ===================== Discord notifications ===================== */
+  function fireAssignNotif(task, oldAssignee, newAssignee) {
+    if (newAssignee && newAssignee !== oldAssignee && newAssignee !== ACCESS.discord_id) {
+      window.Board.notifyTask('assign', task, game && game.name);
+    }
+  }
+  function fireMoveNotifs(task, oldColId, newCol) {
+    if (!newCol || oldColId === newCol.id) return;
+    const oldCol = columns.find(c => c.id === oldColId);
+    if (newCol.is_done && !(oldCol && oldCol.is_done)) window.Board.notifyTask('done', task, game && game.name);
+    else if (newCol.name === 'Review' && !(oldCol && oldCol.name === 'Review')) window.Board.notifyTask('review', task, game && game.name);
+  }
+
+  /* ===================== MY TASKS ===================== */
+  async function refreshMyCount() {
+    try { myTaskList = await window.Board.myTasks(); } catch (e) { myTaskList = []; }
+    const open = myTaskList.filter(t => !t.completed_at).length;
+    const el = $('#mytasks-count');
+    if (el) { el.textContent = open; el.classList.toggle('hidden', open === 0); }
+  }
+
+  async function showMyTasks() {
+    view = 'mytasks';
+    $('#mytasks-btn').classList.add('is-active');
+    $$('#game-list .game-card').forEach(c => c.classList.remove('is-active'));
+    try { myTaskList = await window.Board.myTasks(); } catch (e) { myTaskList = []; }
+    const open = myTaskList.filter(t => !t.completed_at).length;
+    const cnt = $('#mytasks-count'); if (cnt) { cnt.textContent = open; cnt.classList.toggle('hidden', open === 0); }
+
+    $('#game-name').textContent = 'My tasks';
+    const st = $('#game-status'); st.textContent = myTaskList.length ? `${open} open` : ''; st.className = 'game-status';
+    $('#game-meter').innerHTML = ''; $('#game-meter-legend').innerHTML = '';
+    $('#board-tabs').innerHTML = '';
+    $('#manage-game').classList.add('hidden');
+    const canvas = $('#board-canvas');
+    canvas.classList.add('board-canvas--list');
+    if (!myTaskList.length) {
+      canvas.innerHTML = `<div class="board-empty">◎ Nothing assigned to you right now. When a lead assigns you a card, it lands here — across every game.</div>`;
+      return;
+    }
+    const byGame = {};
+    myTaskList.forEach(t => { (byGame[t.game_id] = byGame[t.game_id] || []).push(t); });
+    const gName = (id) => { const g = GAMES.find(x => x.id === id); return g ? g.name : 'Game'; };
+    canvas.innerHTML = Object.keys(byGame).map(gid => `
+      <div class="mt-group">
+        <div class="mt-group__h">${esc(gName(gid))}</div>
+        ${byGame[gid].map(mtItem).join('')}
+      </div>`).join('');
+    $$('#board-canvas [data-mt]').forEach(el => el.addEventListener('click', () => jumpToTask(el.dataset.mt, el.dataset.game, el.dataset.disc)));
+  }
+
+  function mtItem(t) {
+    const pri = PRI[t.priority] || PRI.medium;
+    const due = t.due_date ? dueChip(t.due_date) : '';
+    const done = Boolean(t.completed_at);
+    const meta = [DISC[t.discipline] ? DISC[t.discipline].short : t.discipline, t.points > 0 ? `◆ ${t.points}` : ''].filter(Boolean).join(' · ');
+    return `<button class="mt-item${done ? ' is-done' : ''}" data-mt="${t.id}" data-game="${t.game_id}" data-disc="${t.discipline}" style="--pri:${pri.c}" data-no-sound>
+      <span class="mt-item__pri"></span>
+      <span class="mt-item__main"><b>${esc(t.title)}</b>
+        <span class="mt-item__meta">${esc(meta)}${due ? ' · ' + due : ''}</span></span>
+      ${done ? '<span class="mt-done">✓ done</span>' : `<span class="mt-pri" style="color:${pri.c}">${pri.l}</span>`}
+    </button>`;
+  }
+
+  async function jumpToTask(taskId, gameId, disc) {
+    await selectGame(gameId);
+    activeDisc = DISC_ORDER.includes(disc) ? disc : 'overview';
+    renderTabs(); renderCanvas();
+    openCard(taskId);
+  }
+
+  /* ===================== COINS LEDGER ===================== */
+  async function openCoins() {
+    const wrap = $('#ledger');
+    wrap.innerHTML = '<p class="cm-none">Loading…</p>';
+    $('#ledger-note').textContent = '';
+    openModal('#coins-modal');
+    let rows = [];
+    try { rows = await window.Board.coinLedger(); } catch (e) { wrap.innerHTML = '<p class="cm-none">Couldn’t load the ledger.</p>'; return; }
+    const per = CFG.coinsPerPercent || 50;
+    if (!rows.length) {
+      wrap.innerHTML = '<p class="cm-none">No coins earned yet. Give tasks a coin value, assign them, and move them to Done — earnings show up here.</p>';
+      return;
+    }
+    const totalEarned = rows.reduce((a, r) => a + Number(r.earned || 0), 0);
+    const shareTxt = (coins) => { const s = coins / per; return s >= 10 ? s.toFixed(0) : s.toFixed(1); };
+    wrap.innerHTML =
+      `<div class="ledger-row ledger-row--head"><span>Developer</span><span>Earned</span><span>In progress</span><span>≈ Share</span></div>` +
+      rows.map(r => {
+        const earned = Number(r.earned || 0), pending = Number(r.pending || 0);
+        return `<div class="ledger-row">
+          <span class="ldg-dev"><span class="ava ava--ini">${esc((r.username || '?').charAt(0).toUpperCase())}</span>${esc(r.username || r.discord_id)}</span>
+          <span class="ldg-earned">◆ ${earned}</span>
+          <span class="ldg-pending">◆ ${pending}</span>
+          <span class="ldg-share">${shareTxt(earned)}%</span>
+        </div>`;
+      }).join('') +
+      `<div class="ledger-row ledger-row--total"><span>Total earned</span><span>◆ ${totalEarned}</span><span></span><span>${shareTxt(totalEarned)}%</span></div>`;
+    $('#ledger-note').textContent = `${per} coins ≈ 1% revenue share. Earned = coins on finished (Done) tasks. Change the rate in config.js (coinsPerPercent).`;
+  }
+
   /* ===================== CARD MODAL ===================== */
   async function openCard(id) {
     const t = tasks.find(x => x.id === id); if (!t) return;
+    const oldAssignee = t.assignee_id; const oldColId = t.column_id;
     const full = canEditDisc(t.discipline);
     const memEdit = canMoveTask(t);
     const ro = (cond) => cond ? '' : 'disabled';
@@ -384,7 +495,7 @@
           <select id="cm-pri" data-no-sound ${ro(full)}>
             ${Object.keys(PRI).map(k => `<option value="${k}" ${k === t.priority ? 'selected' : ''}>${PRI[k].l}</option>`).join('')}
           </select></label>
-        <label class="cm-field"><span>Points</span><input id="cm-pts" type="number" min="0" value="${t.points || 0}" ${ro(full)} /></label>
+        <label class="cm-field"><span>Coins ◆ <i>(toward rev-share)</i></span><input id="cm-pts" type="number" min="0" value="${t.points || 0}" ${ro(full)} /></label>
         <label class="cm-field"><span>Due date</span><input id="cm-due" type="date" value="${esc(t.due_date || '')}" ${ro(full)} /></label>
         <label class="cm-field"><span>Labels <i>(comma-sep)</i></span><input id="cm-labels" value="${esc((t.labels || []).join(', '))}" ${ro(full)} /></label>
       </div>
@@ -463,6 +574,8 @@
       try {
         const updated = await window.Board.updateTask(id, patch);
         Object.assign(t, updated || patch);
+        fireAssignNotif(t, oldAssignee, assigneeId);
+        fireMoveNotifs(t, oldColId, col);
         closeCard();
         refreshAfterMutation();
         toast('Saved', 'success');
@@ -562,6 +675,9 @@
   function closeCard() { closeModal('#card-modal'); }
 
   function wireGlobal() {
+    $('#mytasks-btn').addEventListener('click', showMyTasks);
+    $('#coins-btn').addEventListener('click', openCoins);
+    $('#coins-close').addEventListener('click', () => closeModal('#coins-modal'));
     $('#new-game').addEventListener('click', () => openGameModal(null));
     $('#manage-game').addEventListener('click', () => game && openManage());
     $('#gm-cancel').addEventListener('click', () => closeModal('#game-modal'));

@@ -193,6 +193,31 @@
     </div>
   </div>
 
+  <!-- Add accepted applicant to a Studio game -->
+  <div class="modal-overlay hidden" id="enroll-modal">
+    <div class="modal">
+      <h3>Add to a game</h3>
+      <p class="muted" id="enroll-sub" style="font-size:0.88rem;margin-bottom:1.2rem"></p>
+      <div class="field">
+        <label for="enroll-game">Game</label>
+        <select class="select" id="enroll-game" data-no-sound></select>
+      </div>
+      <div class="field">
+        <label for="enroll-disc">Role on this game</label>
+        <select class="select" id="enroll-disc" data-no-sound>
+          <option value="scripter">Scripter</option>
+          <option value="modeler_animator">Modeler &amp; Animator</option>
+          <option value="uiux">UI/UX Designer</option>
+          <option value="all">All-rounder</option>
+        </select>
+      </div>
+      <div class="modal__actions">
+        <button class="btn btn--ghost" id="enroll-cancel" data-no-sound>Cancel</button>
+        <button class="btn btn--primary" id="enroll-confirm" data-no-sound>Add to game</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="assets/js/config.js"></script>
   <script src="assets/js/data.js"></script>

@@ -77,6 +77,11 @@
     // decision modal
     $('#decide-cancel').addEventListener('click', closeDecide);
     $('#decide-modal').addEventListener('click', (e) => { if (e.target.id === 'decide-modal') closeDecide(); });
+
+    // add-to-game (enroll) modal
+    $('#enroll-cancel').addEventListener('click', () => $('#enroll-modal').classList.add('hidden'));
+    $('#enroll-modal').addEventListener('click', (e) => { if (e.target.id === 'enroll-modal') $('#enroll-modal').classList.add('hidden'); });
+    $('#enroll-confirm').addEventListener('click', confirmEnroll);
     $('#decide-template').addEventListener('change', (e) => {
       const tpls = getTemplates(); const i = e.target.value;
       if (i !== '' && tpls[i]) $('#decide-msg').value = tpls[i].text;
@@ -441,6 +446,7 @@
             ? `<button class="btn btn--unban" data-ban="unban">↩ Unban</button>`
             : `<button class="btn btn--ban" data-ban="ban"${a.discord_id ? '' : ' disabled title="No Discord ID — can\'t ban"'}>⛔ Ban</button>`}
           <button class="btn btn--ghost btn--sm" data-pdf data-no-sound>⤓ PDF</button>
+          ${a.status === 'accepted' && a.discord_id ? `<button class="btn btn--primary btn--sm" data-enroll data-no-sound>＋ Add to game</button>` : ''}
         </div>
       </article>`;
     }).join('');
@@ -500,6 +506,9 @@
       const pdf = $('[data-pdf]', card);
       if (pdf) pdf.addEventListener('click', () => exportPdf(id));
 
+      const enroll = $('[data-enroll]', card);
+      if (enroll) enroll.addEventListener('click', () => openEnroll(apps.find(x => x.id === id)));
+
       // roblox info (live only)
       if (Store.live && window.SB) loadRoblox(card);
     });
@@ -550,6 +559,41 @@
     const tpls = getTemplates();
     $('#decide-template').innerHTML = '<option value="">Saved templates…</option>' +
       tpls.map((t, i) => `<option value="${i}">${esc(t.label)}</option>`).join('');
+  }
+
+  /* ---------- Add an accepted applicant to a game (Studio) ---------- */
+  let enrollApp = null;
+  async function openEnroll(app) {
+    if (!app) return;
+    enrollApp = app;
+    $('#enroll-sub').textContent = `Add ${app.full_name || app.discord_username || 'this developer'} to a game's team — they'll see that game's board and can be assigned tasks.`;
+    const sel = $('#enroll-game');
+    sel.innerHTML = '<option value="">Loading…</option>';
+    $('#enroll-modal').classList.remove('hidden');
+    let games = [];
+    try { games = await window.Board.listGames(); } catch (e) {}
+    if (!games.length) {
+      sel.innerHTML = '<option value="">No games yet — create one in the Studio</option>';
+    } else {
+      sel.innerHTML = games.map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join('');
+    }
+    const disc = $('#enroll-disc');
+    if (['scripter', 'modeler_animator', 'uiux'].includes(app.role)) disc.value = app.role;
+  }
+  async function confirmEnroll() {
+    if (!enrollApp) return;
+    const gameId = $('#enroll-game').value;
+    if (!gameId) { window.toast && window.toast('Create a game in the Studio first.', 'error'); return; }
+    const btn = $('#enroll-confirm'); btn.disabled = true;
+    const r = await window.Board.addMember(gameId, {
+      discord_id: enrollApp.discord_id,
+      username: enrollApp.discord_username || enrollApp.full_name || '',
+      discipline: $('#enroll-disc').value,
+    });
+    btn.disabled = false;
+    if (r && r.error) { window.toast && window.toast(r.error, 'error'); return; }
+    $('#enroll-modal').classList.add('hidden');
+    window.toast && window.toast('Added to the game ✓ They can open the Studio now.', 'success');
   }
 
   /* ---------- Accept/reject with a message ---------- */

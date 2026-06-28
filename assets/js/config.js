@@ -26,6 +26,12 @@ window.BRICKRUSH_CONFIG = {
   // CHANGE THIS before you deploy publicly.
   adminPassword: 'BR-v0id7uRBE0W1',
 
+  /* --- Studio Board: coins → rev-share conversion ---
+     Each task is worth some coins; coins a developer earns on finished tasks
+     roll up toward their revenue share. This sets the exchange rate. Default:
+     50 coins ≈ 1% (so ~100 coins ≈ 2%, matching the rev-share page). */
+  coinsPerPercent: 50,
+
   /* --- Real Discord login (works on GitHub Pages, no server needed) ---
      1. Go to https://discord.com/developers/applications  > New Application
      2. OAuth2 > copy the CLIENT ID below
