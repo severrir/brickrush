@@ -440,6 +440,7 @@
           ${banned
             ? `<button class="btn btn--unban" data-ban="unban">↩ Unban</button>`
             : `<button class="btn btn--ban" data-ban="ban"${a.discord_id ? '' : ' disabled title="No Discord ID — can\'t ban"'}>⛔ Ban</button>`}
+          <button class="btn btn--ghost btn--sm" data-pdf data-no-sound>⤓ PDF</button>
         </div>
       </article>`;
     }).join('');
@@ -495,6 +496,9 @@
       // bulk select
       const cb = $('.applicant__select', card);
       if (cb) cb.addEventListener('change', () => { cb.checked ? selected.add(id) : selected.delete(id); updateBulkBar(); });
+
+      const pdf = $('[data-pdf]', card);
+      if (pdf) pdf.addEventListener('click', () => exportPdf(id));
 
       // roblox info (live only)
       if (Store.live && window.SB) loadRoblox(card);
@@ -565,6 +569,33 @@
     setTimeout(() => $('#decide-msg').focus(), 50);
   }
   function closeDecide() { pendingDecision = null; $('#decide-modal').classList.add('hidden'); }
+
+  /* ---------- Per-applicant PDF (print) ---------- */
+  function exportPdf(id) {
+    const a = apps.find(x => x.id === id); if (!a) return;
+    const meta = ROLES.find(r => r.id === a.role);
+    const w = window.open('', '_blank'); if (!w) { window.toast('Allow pop-ups to export a PDF.', 'error'); return; }
+    const row = (k, v) => v ? `<tr><td class="k">${esc(k)}</td><td>${esc(v)}</td></tr>` : '';
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(a.full_name)} — BRICK RUSH</title>
+      <style>body{font-family:system-ui,-apple-system,sans-serif;color:#111;max-width:680px;margin:40px auto;padding:0 24px}
+      h1{margin:0 0 4px;font-size:26px}.sub{color:#666;margin-bottom:26px;font-size:14px}
+      table{width:100%;border-collapse:collapse}td{padding:9px 0;border-bottom:1px solid #eee;vertical-align:top;font-size:14px}
+      .k{color:#999;width:170px;font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+      .why{margin-top:24px}.why h3{font-size:12px;color:#999;text-transform:uppercase;letter-spacing:1px}.why p{font-size:14px;line-height:1.6}
+      .star{color:#e0457a}</style></head><body>
+      <h1>${esc(a.full_name)}</h1>
+      <div class="sub">${esc(meta ? meta.label : a.role)} &middot; ${esc(a.status)} &middot; applied ${new Date(a.created_at).toLocaleDateString()}</div>
+      <table>
+        ${row('Roblox', a.roblox_username)}${row('Discord', a.discord_username)}${row('Experience', a.experience)}
+        ${row('Availability', (a.availability || '') + (a.timezone ? ' · ' + a.timezone : ''))}${row('Portfolio', a.portfolio_url)}
+        ${row(meta ? meta.questionLabel : 'Role answer', a.role_answer)}${row('Past projects', a.past_projects)}
+        ${a.rating ? `<tr><td class="k">Rating</td><td class="star">${'★'.repeat(a.rating)}${'☆'.repeat(5 - a.rating)}</td></tr>` : ''}
+        ${(a.tags && a.tags.length) ? row('Tags', a.tags.join(', ')) : ''}
+      </table>
+      <div class="why"><h3>Why BRICK RUSH</h3><p>${esc(a.why || '—')}</p></div>
+      <script>onload=function(){setTimeout(function(){print()},150)}<\/script></body></html>`);
+    w.document.close();
+  }
 
   /* ---------- CSV ---------- */
   function exportCsv() {
