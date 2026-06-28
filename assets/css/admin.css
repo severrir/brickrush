@@ -155,6 +155,13 @@
 .bulk-bar #bulk-count { font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-muted); padding-right: 0.2rem; }
 @keyframes bulkUp { from { opacity: 0; transform: translate(-50%, 14px); } to { opacity: 1; transform: translate(-50%, 0); } }
 
+/* ---- Keyboard nav ---- */
+.applicant--active { border-color: var(--magenta); box-shadow: 0 0 0 1px var(--magenta), var(--shadow); }
+.cheat-grid { display: grid; gap: 0.55rem; margin: 0.6rem 0 1.2rem; }
+.cheat-grid > div { display: flex; align-items: center; justify-content: space-between; gap: 1rem; font-size: 0.9rem; color: var(--text-muted); }
+kbd { font-family: var(--font-mono); font-size: 0.72rem; background: var(--surface-2); border: 1px solid var(--line-strong);
+  border-bottom-width: 2px; border-radius: 5px; padding: 0.15em 0.5em; color: var(--text); }
+
 /* ---- Live "new applications" badge ---- */
 #rt-badge { animation: rtPulse 1.7s ease-in-out infinite; }
 @keyframes rtPulse { 0%, 100% { box-shadow: 0 6px 22px rgba(255,46,110,0.35); } 50% { box-shadow: 0 6px 26px rgba(255,46,110,0.65); } }

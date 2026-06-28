@@ -139,8 +139,36 @@
       newCount = 0; $('#rt-badge').classList.add('hidden'); await load();
     });
 
+    $('#cheat-close').addEventListener('click', () => $('#cheat-modal').classList.add('hidden'));
+    $('#show-cheat').addEventListener('click', () => $('#cheat-modal').classList.remove('hidden'));
+    wireKeyboard();
     wirePush();
     subscribeRealtime();
+  }
+
+  /* ---------- Keyboard shortcuts ---------- */
+  let activeIndex = -1;
+  function setActive(i) {
+    const cards = $$('.applicant');
+    if (!cards.length) return;
+    activeIndex = Math.max(0, Math.min(cards.length - 1, i));
+    cards.forEach((c, idx) => c.classList.toggle('applicant--active', idx === activeIndex));
+    cards[activeIndex].scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
+  function wireKeyboard() {
+    document.addEventListener('keydown', (e) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const typing = e.target.matches && e.target.matches('input, textarea, select, [contenteditable]');
+      if (e.key === 'Escape') { closeDecide(); $('#cheat-modal').classList.add('hidden'); return; }
+      if (typing) return;
+      const cards = $$('.applicant');
+      if (e.key === 'j' || e.key === 'ArrowDown') { e.preventDefault(); setActive(activeIndex < 0 ? 0 : activeIndex + 1); }
+      else if (e.key === 'k' || e.key === 'ArrowUp') { e.preventDefault(); setActive(activeIndex < 0 ? 0 : activeIndex - 1); }
+      else if (e.key === '/') { e.preventDefault(); $('#admin-search').focus(); }
+      else if (e.key === '?') { e.preventDefault(); $('#cheat-modal').classList.toggle('hidden'); }
+      else if ((e.key === 'a' || e.key === 'r') && cards[activeIndex]) { e.preventDefault(); openDecide(cards[activeIndex].dataset.id, e.key === 'a' ? 'accepted' : 'rejected'); }
+      else if (e.key === 'b' && cards[activeIndex]) { e.preventDefault(); const btn = cards[activeIndex].querySelector('[data-ban="ban"]'); if (btn) btn.click(); }
+    });
   }
 
   /* ---------- Live updates ---------- */
