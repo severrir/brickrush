@@ -11,6 +11,8 @@
 // tolerate a stray trailing comma in the secret name (a common paste mistake)
 const BOT_TOKEN = (Deno.env.get("DISCORD_BOT_TOKEN") ?? Deno.env.get("DISCORD_BOT_TOKEN,") ?? "").trim();
 const OWNER_ID = "903304467531845644"; // your Discord id
+const ACCEPT_ROLE_ID = Deno.env.get("DISCORD_ACCEPT_ROLE_ID") ?? ""; // role to grant on accept
+const GUILD_ID = Deno.env.get("DISCORD_GUILD_ID") ?? "";             // optional; auto-detected if blank
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const ANON = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 
@@ -39,6 +41,24 @@ Deno.serve(async (req) => {
     const { discord_id, status, message, full_name, reviewer_name, reviewer_avatar } = await req.json();
     if (!discord_id) return json({ ok: false, reason: "missing_discord_id" });
     if (!BOT_TOKEN) return json({ ok: false, reason: "no_bot_token_secret" });
+
+    // On accept, auto-assign the developer role in the server (best-effort).
+    if (status === "accepted" && ACCEPT_ROLE_ID) {
+      try {
+        let guildId = GUILD_ID;
+        if (!guildId) {
+          const g = await fetch("https://discord.com/api/v10/users/@me/guilds", { headers: { Authorization: `Bot ${BOT_TOKEN}` } });
+          const guilds = await g.json();
+          guildId = Array.isArray(guilds) && guilds[0] ? guilds[0].id : "";
+        }
+        if (guildId) {
+          await fetch(`https://discord.com/api/v10/guilds/${guildId}/members/${String(discord_id)}/roles/${ACCEPT_ROLE_ID}`, {
+            method: "PUT",
+            headers: { Authorization: `Bot ${BOT_TOKEN}`, "X-Audit-Log-Reason": "Accepted to BRICK RUSH" },
+          });
+        }
+      } catch (_e) { /* role assignment is best-effort; never block the decision */ }
+    }
 
     // 3) Open a DM channel with the applicant.
     const dmRes = await fetch("https://discord.com/api/v10/users/@me/channels", {
