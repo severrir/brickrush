@@ -320,8 +320,22 @@
       });
     });
   }
+  function logDemo(st, type, t, meta) {
+    const u = (window.Auth && window.Auth.getUser && window.Auth.getUser()) || {};
+    const me = myId();
+    const mem = st.members.find(m => m.discord_id === me) || {};
+    st.activity = st.activity || [];
+    st.activity.unshift({
+      id: uid('a'), game_id: t.game_id || null, actor_id: me,
+      actor_name: u.global_name || u.username || mem.username || 'You',
+      type, task_id: t.id || null, task_title: t.title || '', discipline: t.discipline || '',
+      meta: meta || {}, created_at: new Date().toISOString(),
+    });
+    if (st.activity.length > 300) st.activity.length = 300;
+  }
+
   function seedBoard() {
-    const st = { games: [], members: [], leads: [], boards: [], columns: [], tasks: [], comments: [] };
+    const st = { games: [], members: [], leads: [], boards: [], columns: [], tasks: [], comments: [], activity: [], feedback: [] };
     const gid = 'demo-game-neon';
     const now = new Date().toISOString();
     st.games.push({ id: gid, name: 'Neon Heist', description: 'Co-op heist obby set in a rain-slicked synthwave city.', cover_url: '', status: 'in_dev', roblox_url: '', sort: 0, archived: false, created_at: now, created_by: 'demo' });
@@ -357,11 +371,27 @@
     mk('uiux', 'To Do', { title: 'Results + payout screen', priority: 'medium', difficulty: 'easy', points: 40 });
     mk('overview', 'In Progress', { title: 'Milestone: Playable vertical slice', priority: 'high', points: 0, description: 'One full heist start-to-finish with HUD + payout.' });
     mk('overview', 'Backlog', { title: 'Milestone: Closed beta', priority: 'medium', points: 0 });
+
+    // Seed a little history so analytics + feedback look alive in demo.
+    const ago = (h) => new Date(Date.now() - h * 36e5).toISOString();
+    st.activity = [
+      { id: uid('a'), game_id: gid, actor_id: 'demo-ava-001', actor_name: 'avaScripts', type: 'approved', task_title: 'Lobby matchmaking + teleport', discipline: 'scripter', meta: { points: 80, dev: 'avaScripts' }, created_at: ago(30) },
+      { id: uid('a'), game_id: gid, actor_id: 'demo-theo-002', actor_name: 'theoBuilds', type: 'approved', task_title: 'Synthwave city block kit', discipline: 'modeler_animator', meta: { points: 90, dev: 'theoBuilds' }, created_at: ago(52) },
+      { id: uid('a'), game_id: gid, actor_id: 'demo-ava-001', actor_name: 'avaScripts', type: 'submitted', task_title: 'Round-based heist loop', discipline: 'scripter', meta: {}, created_at: ago(6) },
+      { id: uid('a'), game_id: gid, actor_id: 'demo-ava-001', actor_name: 'avaScripts', type: 'claimed', task_title: 'Round-based heist loop', discipline: 'scripter', meta: { assignee: 'avaScripts' }, created_at: ago(70) },
+      { id: uid('a'), game_id: gid, actor_id: 'demo-theo-002', actor_name: 'theoBuilds', type: 'commented', task_title: 'Getaway car + rig', discipline: 'modeler_animator', meta: {}, created_at: ago(3) },
+    ];
+    st.feedback = [
+      { id: uid('f'), author_id: 'demo-ava-001', author_name: 'avaScripts', author_avatar: '', game_id: gid, kind: 'blocker', body: 'The anti-exploit task is blocked until the loot-pickup remote events are finalized — can we pair on the API shape?', resolved: false, created_at: ago(5) },
+      { id: uid('f'), author_id: 'demo-theo-002', author_name: 'theoBuilds', author_avatar: '', game_id: gid, kind: 'idea', body: 'We could reuse the city block kit for a night-market sub-area. Cheap win for variety.', resolved: false, created_at: ago(20) },
+    ];
     return st;
   }
   function readBoard() {
     let st = readLocal(BOARD_KEY, null);
     if (!st || !st.games) { st = seedBoard(); writeLocal(BOARD_KEY, st); }
+    if (!st.activity) st.activity = [];
+    if (!st.feedback) st.feedback = [];
     return st;
   }
   const writeBoard = (st) => writeLocal(BOARD_KEY, st);
@@ -377,7 +407,7 @@
         return data;
       }
       const st = readBoard();
-      return { discord_id: myId() || 'demo', is_staff: true, leads: [], game_ids: st.games.map(g => g.id) };
+      return { discord_id: myId() || 'demo', is_staff: true, leads: [], game_ids: st.games.map(g => g.id), memberships: st.games.map(g => ({ game_id: g.id, discipline: 'all' })) };
     },
 
     async listGames() {
@@ -481,8 +511,8 @@
       };
       if (sb) { const { data, error } = await sb.from('tasks').insert(rec).select().single(); if (error) throw error; return data; }
       const st = readBoard();
-      const row = { id: uid('t'), ...rec, completed_at: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
-      st.tasks.push(row); writeBoard(st); return row;
+      const row = { id: uid('t'), ...rec, submitted_at: null, approved_at: null, approved_by: null, approved_by_name: '', completed_at: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+      st.tasks.push(row); logDemo(st, 'created', row); writeBoard(st); return row;
     },
     async updateTask(id, patch) {
       const p = { ...patch, updated_at: new Date().toISOString() };
@@ -492,7 +522,19 @@
     async moveTask(id, columnId, sort, isDone) {
       const p = { column_id: columnId, sort, completed_at: isDone ? new Date().toISOString() : null, updated_at: new Date().toISOString() };
       if (sb) { const { error } = await sb.from('tasks').update(p).eq('id', id); if (error) throw error; return; }
-      const st = readBoard(); const t = st.tasks.find(x => x.id === id); if (t) Object.assign(t, p); writeBoard(st);
+      const st = readBoard(); const t = st.tasks.find(x => x.id === id);
+      if (t) {
+        const wasDone = !!t.completed_at;
+        const col = st.columns.find(c => c.id === columnId) || {};
+        const u = (window.Auth && window.Auth.getUser && window.Auth.getUser()) || {};
+        if (isDone) { p.approved_at = new Date().toISOString(); p.approved_by = myId(); p.approved_by_name = u.global_name || u.username || 'You'; }
+        else if (wasDone) { p.approved_at = null; p.approved_by = null; p.approved_by_name = ''; }
+        if (col.name && col.name.toLowerCase() === 'review') p.submitted_at = new Date().toISOString();
+        Object.assign(t, p);
+        if (isDone && !wasDone) logDemo(st, 'approved', t, { points: t.points, dev: t.assignee_name });
+        else if (col.name && col.name.toLowerCase() === 'review') logDemo(st, 'submitted', t);
+      }
+      writeBoard(st);
     },
     async deleteTask(id) {
       if (sb) { await sb.from('tasks').delete().eq('id', id); return; }
@@ -521,6 +563,7 @@
       t.assignee_id = me;
       t.assignee_name = u.global_name || u.username || mem.username || 'You';
       t.assignee_avatar = u.avatar || '';
+      logDemo(st, 'claimed', t, { assignee: t.assignee_name });
       writeBoard(st);
       return { ok: true };
     },
@@ -533,7 +576,9 @@
       const u = (window.Auth && window.Auth.getUser && window.Auth.getUser()) || {};
       const rec = { task_id: taskId, author_id: u.id || 'demo', author_name: u.global_name || u.username || 'member', author_avatar: u.avatar || '', body };
       if (sb) { const { data, error } = await sb.from('task_comments').insert(rec).select().single(); if (error) throw error; return data; }
-      const st = readBoard(); const row = { id: uid('tc'), ...rec, created_at: new Date().toISOString() }; st.comments.push(row); writeBoard(st); return row;
+      const st = readBoard(); const row = { id: uid('tc'), ...rec, created_at: new Date().toISOString() }; st.comments.push(row);
+      const t = st.tasks.find(x => x.id === taskId) || {}; logDemo(st, 'commented', { game_id: t.game_id, id: taskId, title: t.title, discipline: t.discipline });
+      writeBoard(st); return row;
     },
 
     /* ---- Coins ledger: who's earned what (drives rev-share) ---- */
@@ -555,6 +600,52 @@
       if (sb) { const { data, error } = await sb.rpc('my_tasks'); if (error) throw error; return data || []; }
       const me = myId();
       return readBoard().tasks.filter(t => t.assignee_id === me);
+    },
+
+    /* ---- Owner analytics: per-developer work stats ---- */
+    async devAnalytics() {
+      if (sb) { const { data, error } = await sb.rpc('dev_analytics'); if (error) throw error; return data || []; }
+      const st = readBoard();
+      const doneCols = new Set(st.columns.filter(c => c.is_done).map(c => c.id));
+      const map = {};
+      st.tasks.filter(t => t.assignee_id).forEach(t => {
+        const m = map[t.assignee_id] || (map[t.assignee_id] = { discord_id: t.assignee_id, username: t.assignee_name, tasks_done: 0, tasks_open: 0, points: 0, pending_points: 0 });
+        if (doneCols.has(t.column_id)) { m.tasks_done++; m.points += t.points || 0; }
+        else { m.tasks_open++; m.pending_points += t.points || 0; }
+        if (t.assignee_name) m.username = t.assignee_name;
+      });
+      const now = Date.now();
+      Object.values(map).forEach(m => {
+        const acts = st.activity.filter(a => a.actor_id === m.discord_id);
+        m.last_active = acts.length ? acts[0].created_at : null;
+        m.actions_7d = acts.filter(a => now - new Date(a.created_at) < 7 * 864e5).length;
+        m.actions_30d = acts.filter(a => now - new Date(a.created_at) < 30 * 864e5).length;
+        m.comments = st.comments.filter(c => c.author_id === m.discord_id).length;
+      });
+      return Object.values(map).sort((a, b) => b.points - a.points || b.tasks_done - a.tasks_done);
+    },
+
+    /* ---- Owner activity feed: who did what, lately ---- */
+    async activityFeed(limit) {
+      if (sb) { const { data, error } = await sb.rpc('activity_feed', { p_limit: limit || 80 }); if (error) throw error; return data || []; }
+      return readBoard().activity.slice(0, limit || 80);
+    },
+
+    /* ---- Dev feedback ---- */
+    async submitFeedback({ kind, body, game_id }) {
+      const u = (window.Auth && window.Auth.getUser && window.Auth.getUser()) || {};
+      const rec = { author_id: myId(), author_name: u.global_name || u.username || 'You', author_avatar: u.avatar || '', game_id: game_id || null, kind: kind || 'note', body };
+      if (sb) { const { error } = await sb.from('feedback').insert(rec); if (error) return { error: error.message }; return { ok: true }; }
+      const st = readBoard(); st.feedback.unshift({ id: uid('f'), ...rec, resolved: false, created_at: new Date().toISOString() }); writeBoard(st);
+      return { ok: true };
+    },
+    async listFeedback() {
+      if (sb) { const { data, error } = await sb.from('feedback').select('*').order('created_at', { ascending: false }); if (error) throw error; return data || []; }
+      return readBoard().feedback.slice().sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    },
+    async resolveFeedback(id, resolved) {
+      if (sb) { await sb.from('feedback').update({ resolved }).eq('id', id); return; }
+      const st = readBoard(); const f = st.feedback.find(x => x.id === id); if (f) f.resolved = resolved; writeBoard(st);
     },
 
     /* ---- Discord notifications (best-effort; dormant until configured) ---- */

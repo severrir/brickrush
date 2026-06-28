@@ -62,6 +62,12 @@
         <button class="rail-nav" id="mytasks-btn" data-no-sound>
           <span>◎ My tasks</span><span class="rail-nav__n hidden" id="mytasks-count">0</span>
         </button>
+        <button class="rail-nav rail-nav--sub hidden" id="analytics-btn" data-no-sound>
+          <span>📊 Team analytics</span>
+        </button>
+        <button class="rail-nav rail-nav--sub" id="feedback-btn" data-no-sound>
+          <span>✎ Feedback</span><span class="rail-nav__n hidden" id="feedback-count">0</span>
+        </button>
         <div class="demo-banner hidden" id="demo-banner">
           ✳ <span><b>Demo mode</b> — local to this browser. Add Supabase keys in <b>config.js</b> to go live.</span>
         </div>
@@ -186,10 +192,33 @@
   <div class="modal-overlay hidden" id="coins-modal">
     <div class="modal modal--wide">
       <h3>◆ Coins &amp; rev-share</h3>
-      <p class="muted" id="coins-sub">Coins earned on finished tasks roll up toward each developer’s revenue share.</p>
+      <p class="muted" id="coins-sub">Coins earned on approved tasks roll up toward each developer’s revenue share.</p>
       <div class="ledger" id="ledger"></div>
       <p class="ledger-note" id="ledger-note"></p>
       <div class="modal__actions"><span style="flex:1"></span><button class="btn btn--ghost" id="coins-close" data-no-sound>Done</button></div>
+    </div>
+  </div>
+
+  <!-- ===== Feedback modal ===== -->
+  <div class="modal-overlay hidden" id="feedback-modal">
+    <div class="modal modal--wide">
+      <h3>✎ Feedback</h3>
+      <p class="muted">Tell the studio what’s working, what’s blocking you, or an idea worth trying. The owner sees every note.</p>
+      <div class="fb-compose">
+        <div class="fb-kinds" id="fb-kinds" role="group" aria-label="Feedback type">
+          <button class="fb-kind is-active" data-kind="note" data-no-sound>💬 Note</button>
+          <button class="fb-kind" data-kind="idea" data-no-sound>💡 Idea</button>
+          <button class="fb-kind" data-kind="issue" data-no-sound>⚠️ Issue</button>
+          <button class="fb-kind" data-kind="blocker" data-no-sound>🛑 Blocker</button>
+        </div>
+        <textarea class="textarea" id="fb-body" rows="3" placeholder="What happened? What would help?"></textarea>
+        <div class="modal__actions">
+          <span style="flex:1"></span>
+          <button class="btn btn--ghost" id="fb-close" data-no-sound>Close</button>
+          <button class="btn btn--primary" id="fb-send" data-no-sound>Send feedback</button>
+        </div>
+      </div>
+      <div class="fb-list" id="fb-list"></div>
     </div>
   </div>
 

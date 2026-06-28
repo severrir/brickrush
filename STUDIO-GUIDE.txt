@@ -1,0 +1,208 @@
+===============================================================================
+ BRICK RUSH — STUDIO PANEL & APPLICATIONS GUIDE
+ Last updated: 2026-06-29
+===============================================================================
+
+This file explains, in plain language, how the two systems behind BRICK RUSH
+work: the APPLICATIONS pipeline (how people join) and the STUDIO PANEL (how the
+team gets work done after they join). Nothing here runs on your PC — everything
+lives in the cloud (Supabase) so it keeps working whether your computer is on
+or off. If the cloud keys are blank, the whole site quietly runs in a local
+"demo mode" in your browser instead.
+
+Key pages:
+  - index.html / apply.html  -> public site + the application form
+  - admin.html               -> review applications (owner + admins)
+  - board.html               -> the Studio panel (the task system)
+
+
+===============================================================================
+ 1. APPLICATIONS — how people join the studio
+===============================================================================
+
+WHO SEES WHAT
+  - Anyone can open the site and apply.
+  - Only the OWNER and people the owner promotes to ADMIN can open admin.html
+    and review applications.
+
+THE FLOW
+  1. A candidate logs in with Discord, picks a role (Scripter, Modeler &
+     Animator, or UI/UX Designer), and fills out the form (apply.html).
+  2. The application lands in admin.html as "Pending".
+  3. You (owner/admin) review it and Accept or Reject. You can leave a note,
+     star/rate it, and tag it.
+  4. The candidate is notified of the result on Discord (a direct message from
+     the bot), so they always know where they stand.
+  5. BAN: if someone shouldn't apply again, you can ban their Discord identity.
+     A banned person can't submit new applications.
+
+FROM APPLICANT TO DEVELOPER
+  - On an ACCEPTED application card there is a "+ Add to game" button.
+  - Click it, pick the game, and the person is enrolled as a MEMBER of that
+    game with the role they applied for already filled in.
+  - That enrolment is what gives them access to the Studio panel (board.html).
+
+
+===============================================================================
+ 2. STUDIO PANEL — the task system (board.html)
+===============================================================================
+
+THE SHAPE OF EVERYTHING
+  Game  ->  Boards  ->  Columns  ->  Tasks (cards)
+
+  - GAME      = one Roblox project. You can run as many games at once as you
+                like. Each game tracks its own completion %.
+  - BOARDS    = every game automatically gets four boards:
+                  Overview, Scripting, Modeling & Animation, UI/UX.
+  - COLUMNS   = every board has five columns:
+                  Backlog -> To Do -> In Progress -> Review -> Done
+  - TASKS     = the cards. A card has a title, description, assignee, priority,
+                difficulty, a coin value, due date, labels, an attachment link,
+                a checklist, and a comments thread.
+
+
+-------------------------------------------------------------------------------
+ 2a. WHO CAN DO WHAT (roles)
+-------------------------------------------------------------------------------
+
+OWNER / ADMINS  (full control)
+  - Create games, create and assign any task, set coins & difficulty,
+    add members, appoint leads, approve work, see Team Analytics, read all
+    feedback.
+
+LEAD  ("Head of Scripting / Modeling / UI/UX")  — studio-wide, set per role
+  - Can create, assign, edit, move, delete, and APPROVE tasks on THEIR
+    discipline's boards across every game. Think of them as your second-in-
+    command for that craft.
+
+MEMBER  (a developer added to a game)
+  - Sees the whole game's progress and the Overview board (READ-ONLY — the
+    Overview tab is marked "view").
+  - Only sees and works inside THEIR OWN discipline's board (a scripter sees
+    Scripting, not Modeling or UI/UX).
+  - Can pick up, work on, and submit tasks assigned to them.
+  - CANNOT change a task's settings (title, coins, difficulty, priority) and
+    CANNOT approve their own work. Those are owner/lead powers.
+
+
+-------------------------------------------------------------------------------
+ 2b. CLAIMING WORK (self-serve)
+-------------------------------------------------------------------------------
+  - Unassigned cards show a "Claim" button. A developer can claim a task to
+    take it on themselves — no need to wait for an assignment.
+  - To stop people hoarding work, claims are limited by difficulty. By default
+    one person can hold, at the same time:
+        3 EASY  +  2 MEDIUM  +  1 HARD     (open tasks only)
+    Finishing or dropping one frees the slot. These numbers live in config.js
+    (claimLimits) and can be changed any time.
+  - Once a task is claimed, nobody else can take it. The card shows the
+    assignee's profile picture so everyone can see who's on it.
+  - Admins and leads can still ASSIGN work past these limits — the cap only
+    applies to people claiming for themselves.
+
+
+-------------------------------------------------------------------------------
+ 2c. THE WORK -> REVIEW -> APPROVE -> PAY FLOW  (this is the important part)
+-------------------------------------------------------------------------------
+  1. A developer works the card across To Do and In Progress.
+  2. When it's ready, they hit "Submit for review ->". The card moves to the
+     Review column and is stamped as submitted.
+  3. The OWNER or the discipline LEAD opens it and either:
+        - "Approve"          -> the card moves to Done and the coins are
+                                 awarded to the developer, OR
+        - "Request changes"  -> the card goes back to In Progress, with an
+                                 optional note left as a comment.
+  4. Only an owner or lead can move a card into Done. If a developer tries to
+     drag it there, it's blocked with a reminder to submit it for review
+     instead. This is enforced in the database, not just the screen — it
+     cannot be bypassed.
+
+  So: coins are earned ONLY on APPROVED work. Nothing pays out until you (or a
+  lead) sign off.
+
+
+-------------------------------------------------------------------------------
+ 2d. COINS & REVENUE SHARE
+-------------------------------------------------------------------------------
+  - Each task is worth some COINS (set on the card by owner/lead).
+  - Coins on APPROVED tasks roll up toward each developer's revenue share.
+  - Conversion rate: 50 coins ≈ 1% (set by "coinsPerPercent" in config.js).
+  - Developers see their own totals at the top of "My tasks":
+        Earned  /  In progress  /  ≈ Rev share %
+  - You see everyone's totals in the "Coins" ledger (top-right of a game) and
+    in Team Analytics.
+  - NOTE: the panel TRACKS coins and shows the implied share. It does not move
+    real money — actual payouts stay manual and in your control.
+
+
+-------------------------------------------------------------------------------
+ 2e. THE RAIL (left sidebar) — what each button does
+-------------------------------------------------------------------------------
+  - My tasks        Everything assigned to you, across every game, with your
+                    earnings banner on top. The number badge = open tasks.
+  - Team analytics  (owner only) The dashboard — see below.
+  - Feedback        Leave a note/idea/issue/blocker for the studio. The badge
+                    (owner only) counts unresolved feedback.
+  - Games list      Switch between games. Each shows a live completion bar.
+  - + New game      (owner only) Spin up a new project; its four boards and
+                    five columns are created automatically.
+
+
+-------------------------------------------------------------------------------
+ 2f. TEAM ANALYTICS  (owner only)
+-------------------------------------------------------------------------------
+  Open it from the rail. It shows, across all games:
+  - Headline numbers: developers, how many were active this week, tasks
+    approved, total coins awarded.
+  - A per-developer table: tasks done, tasks open, coins earned, ≈ rev share,
+    activity in the last 7 / 30 days, and when they were last active.
+  - A live ACTIVITY FEED: who created, claimed, submitted, approved, or
+    commented on what, and when. This is your "what's the team actually doing"
+    log.
+  - The feedback inbox, where you can mark items Resolved or reopen them.
+
+  The activity log is written automatically by the database whenever work
+  happens, so it's always accurate and can't be faked from a browser.
+
+
+-------------------------------------------------------------------------------
+ 2g. FEEDBACK
+-------------------------------------------------------------------------------
+  - Any developer can open Feedback and post a Note, Idea, Issue, or Blocker —
+    a quick way to say "this is blocking me" or "here's a thought".
+  - Developers see their own feedback; the owner sees ALL of it (in the
+    Feedback panel and in Team Analytics) and can resolve/reopen each item.
+
+
+===============================================================================
+ 3. WHERE THE SETTINGS LIVE
+===============================================================================
+  Everything you'd tune is in  assets/js/config.js :
+    - coinsPerPercent     coins-to-rev-share rate (default 50 = 1%)
+    - claimLimits         how many tasks of each difficulty one person can hold
+    - adminDiscordId      the owner's Discord ID (full control)
+    - SUPABASE_URL / KEY  the cloud backend (blank = local demo mode)
+    - DISCORD_WEBHOOK_URL  optional: post task updates to a Discord channel
+
+  Promote someone to admin or appoint a discipline lead from inside the app
+  (admin.html for admins; the "Manage" button on a game for members & leads).
+
+
+===============================================================================
+ 4. QUICK ANSWERS
+===============================================================================
+  Q: Does any of this need my PC on?
+  A: No. It's all in Supabase (cloud). Your PC is never a server.
+
+  Q: A developer says they can't see a board.
+  A: They only see their own discipline + a read-only Overview. Add them to the
+     game with the right role (or the "All-rounder" role to see every board).
+
+  Q: How does a developer get paid for a task?
+  A: They submit it for review; you or the lead approve it; the coins are then
+     awarded and counted toward their revenue share.
+
+  Q: Someone left the team — how do I cut their access?
+  A: Remove them from the game in "Manage". They lose access to that game's
+     board immediately.
+===============================================================================

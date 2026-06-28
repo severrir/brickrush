@@ -28,21 +28,48 @@
   const STATUS_LABEL = { planning: 'Planning', in_dev: 'In development', testing: 'Testing', launched: 'Launched', paused: 'Paused' };
 
   /* ---- state ---- */
-  let ACCESS = { discord_id: '', is_staff: false, leads: [], game_ids: [] };
+  let ACCESS = { discord_id: '', is_staff: false, leads: [], game_ids: [], memberships: [] };
   let GAMES = [];
   let game = null;            // active game (from GAMES)
   let boards = [], columns = [], tasks = [], members = [];
   let activeDisc = 'overview';
   let rt = null;
   let dragId = null;
-  let view = 'board';        // 'board' | 'mytasks'
+  let view = 'board';        // 'board' | 'mytasks' | 'analytics'
   let myTaskList = [];
 
   /* ---- permissions (mirror RLS) ---- */
   const canManage = () => ACCESS.is_staff;
   const isMember = () => (ACCESS.game_ids || []).includes(game && game.id);
-  const canEditDisc = (disc) => ACCESS.is_staff || (disc !== 'overview' && (ACCESS.leads || []).includes(disc));
-  const canMoveTask = (t) => canEditDisc(t.discipline) || (isMember() && (t.assignee_id === ACCESS.discord_id || !t.assignee_id));
+  const myMembership = (gid) => (ACCESS.memberships || []).find(m => m.game_id === gid) || null;
+  const isLead = (disc) => (ACCESS.leads || []).includes(disc);
+  // who may approve work on a discipline (push a task into Done)
+  const canApprove = (disc) => ACCESS.is_staff || (disc !== 'overview' && isLead(disc));
+  // who may edit a card's settings (title, points, difficulty…) — staff + leads
+  const canEditDisc = (disc) => ACCESS.is_staff || (disc !== 'overview' && isLead(disc));
+  // members may carry their own work, but never touch Overview and never self-approve
+  const canMoveTask = (t) => {
+    if (t.discipline === 'overview') return canManage();
+    if (canEditDisc(t.discipline)) return true;
+    return isMember() && (t.assignee_id === ACCESS.discord_id || !t.assignee_id);
+  };
+  // which discipline tabs this person should even see for the active game
+  function visibleDiscs() {
+    const present = DISC_ORDER.filter(d => boards.some(b => b.discipline === d));
+    if (canManage()) return present;
+    const allow = new Set(['overview']);
+    (ACCESS.leads || []).forEach(d => allow.add(d));
+    const mem = myMembership(game && game.id);
+    if (mem) {
+      if (mem.discipline === 'all') ['scripter', 'modeler_animator', 'uiux'].forEach(d => allow.add(d));
+      else allow.add(mem.discipline);
+    }
+    return present.filter(d => allow.has(d));
+  }
+  const colById = (id) => columns.find(c => c.id === id) || null;
+  const colByName = (boardId, name) => columns.find(c => c.board_id === boardId && c.name.toLowerCase() === name.toLowerCase()) || null;
+  const isReviewCol = (id) => { const c = colById(id); return c && c.name.toLowerCase() === 'review'; };
+  const isDoneCol = (id) => { const c = colById(id); return c && c.is_done; };
 
   /* ===================== BOOT / GATE ===================== */
   async function boot() {
@@ -61,10 +88,12 @@
       $('#new-game').classList.remove('hidden');
       $('#nav-admin-link').classList.remove('hidden');
       $('#manage-game').classList.remove('hidden');
+      $('#analytics-btn').classList.remove('hidden');
     }
     wireGlobal();
     await loadGames();
     refreshMyCount();
+    refreshFeedbackCount();
   }
 
   function gate(kind) {
@@ -140,6 +169,7 @@
     game = GAMES.find(g => g.id === id) || game;
     view = 'board';
     const mtb = $('#mytasks-btn'); if (mtb) mtb.classList.remove('is-active');
+    const anb = $('#analytics-btn'); if (anb) anb.classList.remove('is-active');
     $('#board-canvas').classList.remove('board-canvas--list');
     if (canManage()) $('#manage-game').classList.remove('hidden');
     [boards, columns, tasks, members] = await Promise.all([
@@ -155,13 +185,15 @@
   }
 
   /* ===================== HEAD + METER ===================== */
+  const PROD = ['scripter', 'modeler_animator', 'uiux'];   // disciplines that count toward completion
   function discStats() {
     const out = {};
-    ['scripter', 'modeler_animator', 'uiux'].forEach(d => {
+    const doneColIds = new Set(columns.filter(c => c.is_done).map(c => c.id));
+    // weight the whole game consistently: by coins if any are set, else by task count
+    const usePts = tasks.some(t => PROD.includes(t.discipline) && t.points > 0);
+    PROD.forEach(d => {
       const ts = tasks.filter(t => t.discipline === d);
-      const doneColIds = new Set(columns.filter(c => c.is_done).map(c => c.id));
       const done = ts.filter(t => doneColIds.has(t.column_id));
-      const usePts = ts.some(t => t.points > 0);
       out[d] = {
         total: ts.length, done: done.length,
         weight: usePts ? ts.reduce((a, t) => a + (t.points || 0), 0) : ts.length,
@@ -176,30 +208,51 @@
     const st = $('#game-status');
     st.textContent = STATUS_LABEL[game.status] || game.status;
     st.className = 'game-status dot-pre dot--' + game.status;
+    renderMeter();
+    $('#game-meter-legend').innerHTML = PROD.map(d => {
+      const s = discStats()[d];
+      return `<span class="leg"><i style="background:${DISC[d].tint}"></i>${DISC[d].short} ${s.done}/${s.total}</span>`;
+    }).join('');
+  }
 
+  // Builds the segmented meter once, then updates widths in place so the fill
+  // animates smoothly instead of flashing back to 0 on every re-render.
+  function renderMeter() {
     const s = discStats();
-    const grand = ['scripter', 'modeler_animator', 'uiux'].reduce((a, d) => a + s[d].weight, 0);
-    const grandDone = ['scripter', 'modeler_animator', 'uiux'].reduce((a, d) => a + s[d].weightDone, 0);
+    const grand = PROD.reduce((a, d) => a + s[d].weight, 0);
+    const grandDone = PROD.reduce((a, d) => a + s[d].weightDone, 0);
     const overall = pct(grandDone, grand);
-    const seg = ['scripter', 'modeler_animator', 'uiux'].map(d => {
+    const host = $('#game-meter');
+    let bar = host.querySelector('.meter__bar');
+    const fresh = !bar || bar.children.length !== PROD.length;
+    if (fresh) {
+      host.innerHTML = `<div class="meter__bar">${PROD.map(d =>
+        `<span class="seg" data-seg="${d}" style="--tint:${DISC[d].tint}"><span class="seg__fill"></span></span>`).join('')
+        }</div><div class="meter__num"><span class="meter__n">0</span><span>%</span></div>`;
+      bar = host.querySelector('.meter__bar');
+    }
+    PROD.forEach(d => {
+      const seg = bar.querySelector(`[data-seg="${d}"]`);
+      if (!seg) return;
       const basis = grand ? (s[d].weight / grand * 100) : 33.33;
       const fill = s[d].weight ? (s[d].weightDone / s[d].weight * 100) : 0;
-      return `<span class="seg" style="flex:${basis};--tint:${DISC[d].tint}" title="${DISC[d].short}: ${pct(s[d].weightDone, s[d].weight)}%">
-        <span class="seg__fill" style="width:${fill}%"></span></span>`;
-    }).join('');
-    $('#game-meter').innerHTML = `<div class="meter__bar">${seg}</div><div class="meter__num">${overall}<span>%</span></div>`;
-    $('#game-meter-legend').innerHTML = ['scripter', 'modeler_animator', 'uiux'].map(d =>
-      `<span class="leg"><i style="background:${DISC[d].tint}"></i>${DISC[d].short} ${s[d].done}/${s[d].total}</span>`
-    ).join('');
+      seg.style.flex = String(basis);
+      seg.title = `${DISC[d].short}: ${pct(s[d].weightDone, s[d].weight)}% (${s[d].done}/${s[d].total})`;
+      seg.querySelector('.seg__fill').style.width = fill + '%';
+    });
+    const num = host.querySelector('.meter__n'); if (num) num.textContent = overall;
   }
 
   /* ===================== TABS ===================== */
   function renderTabs() {
     const wrap = $('#board-tabs');
-    wrap.innerHTML = DISC_ORDER.filter(d => boards.some(b => b.discipline === d)).map(d => {
+    const discs = visibleDiscs();
+    if (!discs.includes(activeDisc)) activeDisc = discs[0] || 'overview';
+    wrap.innerHTML = discs.map(d => {
       const n = tasks.filter(t => t.discipline === d).length;
+      const ro = d === 'overview' && !canManage();
       return `<button class="board-tab${d === activeDisc ? ' is-active' : ''}" data-disc="${d}" style="--tint:${DISC[d].tint}">
-        ${esc(DISC[d].name)}${n ? ` <span class="tab-n">${n}</span>` : ''}</button>`;
+        ${esc(DISC[d].name)}${ro ? ' <span class="tab-ro" title="View only">view</span>' : ''}${n ? ` <span class="tab-n">${n}</span>` : ''}</button>`;
     }).join('');
     $$('#board-tabs .board-tab').forEach(b => b.addEventListener('click', () => { activeDisc = b.dataset.disc; renderTabs(); renderCanvas(); }));
   }
@@ -280,21 +333,39 @@
     // drag & drop (desktop)
     $$('#board-canvas .task-card[draggable="true"]').forEach(card => {
       card.addEventListener('dragstart', (e) => { dragId = card.dataset.task; card.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; });
-      card.addEventListener('dragend', () => { dragId = null; $$('.task-card.dragging').forEach(x => x.classList.remove('dragging')); $$('.col__body.drop-on').forEach(x => x.classList.remove('drop-on')); });
+      card.addEventListener('dragend', () => { dragId = null; $$('.task-card.dragging').forEach(x => x.classList.remove('dragging')); $$('.col__body.drop-on, .col__body.drop-block').forEach(x => x.classList.remove('drop-on', 'drop-block')); });
     });
     $$('#board-canvas .col__body').forEach(body => {
+      const colId = body.dataset.drop;
+      // can the dragged task legally land here? (members can't approve into Done)
+      const blocked = () => {
+        if (!dragId) return false;
+        const t = tasks.find(x => x.id === dragId);
+        return t && isDoneCol(colId) && !canApprove(t.discipline);
+      };
       body.addEventListener('dragover', (e) => {
         if (!dragId) return;
         e.preventDefault();
+        if (blocked()) { e.dataTransfer.dropEffect = 'none'; body.classList.add('drop-block'); return; }
+        e.dataTransfer.dropEffect = 'move';
         body.classList.add('drop-on');
-        const after = afterElement(body, e.clientY);
         const dragged = $(`.task-card[data-task="${dragId}"]`);
         if (!dragged) return;
-        if (after == null) body.appendChild(dragged);
-        else body.insertBefore(dragged, after);
+        const after = afterElement(body, e.clientY);
+        // only touch the DOM when the position actually changes — kills the flicker
+        if (after == null) {
+          if (body.lastElementChild !== dragged) body.appendChild(dragged);
+        } else if (after !== dragged && after.previousElementSibling !== dragged) {
+          body.insertBefore(dragged, after);
+        }
       });
-      body.addEventListener('dragleave', (e) => { if (!body.contains(e.relatedTarget)) body.classList.remove('drop-on'); });
-      body.addEventListener('drop', (e) => { e.preventDefault(); body.classList.remove('drop-on'); commitDrop(body); });
+      body.addEventListener('dragleave', (e) => { if (!body.contains(e.relatedTarget)) body.classList.remove('drop-on', 'drop-block'); });
+      body.addEventListener('drop', (e) => {
+        e.preventDefault();
+        body.classList.remove('drop-on', 'drop-block');
+        if (blocked()) { toast('Submit it to Review — only an admin or the discipline lead can approve into Done.', 'error'); dragId = null; return selectGame(game.id); }
+        commitDrop(body);
+      });
     });
   }
 
@@ -432,6 +503,7 @@
   async function showMyTasks() {
     view = 'mytasks';
     $('#mytasks-btn').classList.add('is-active');
+    $('#analytics-btn').classList.remove('is-active');
     $$('#game-list .game-card').forEach(c => c.classList.remove('is-active'));
     try { myTaskList = await window.Board.myTasks(); } catch (e) { myTaskList = []; }
     const open = myTaskList.filter(t => !t.completed_at).length;
@@ -452,8 +524,16 @@
     myTaskList.forEach(t => { (byGame[t.game_id] = byGame[t.game_id] || []).push(t); });
     const gName = (id) => { const g = GAMES.find(x => x.id === id); return g ? g.name : 'Game'; };
     const L = CFG.claimLimits || { easy: 3, medium: 2, hard: 1 };
+    const earn = await myEarnings();
+    const per = CFG.coinsPerPercent || 50;
+    const share = (c) => { const v = c / per; return v >= 10 ? v.toFixed(0) : v.toFixed(1); };
+    const earnBanner = earn ? `<div class="mt-earn">
+      <div class="mt-earn__big">◆ ${earn.earned}<span>earned</span></div>
+      <div class="mt-earn__big mt-earn__big--soft">◆ ${earn.pending}<span>in progress</span></div>
+      <div class="mt-earn__big mt-earn__big--share">${share(earn.earned)}%<span>≈ rev share</span></div>
+    </div>` : '';
     const hint = `<div class="mt-hint">You can hold up to <b>${L.easy} easy</b>, <b>${L.medium} medium</b>, and <b>${L.hard} hard</b> task at once — finishing one frees a slot to claim another.</div>`;
-    canvas.innerHTML = hint + Object.keys(byGame).map(gid => `
+    canvas.innerHTML = earnBanner + hint + Object.keys(byGame).map(gid => `
       <div class="mt-group">
         <div class="mt-group__h">${esc(gName(gid))}</div>
         ${byGame[gid].map(mtItem).join('')}
@@ -479,6 +559,131 @@
     activeDisc = DISC_ORDER.includes(disc) ? disc : 'overview';
     renderTabs(); renderCanvas();
     openCard(taskId);
+  }
+
+  async function myEarnings() {
+    try {
+      const rows = await window.Board.coinLedger();
+      const mine = (rows || []).find(r => r.discord_id === ACCESS.discord_id);
+      if (!mine) return { earned: 0, pending: 0 };
+      return { earned: Number(mine.earned || 0), pending: Number(mine.pending || 0) };
+    } catch (e) { return null; }
+  }
+
+  /* ===================== TEAM ANALYTICS (staff) ===================== */
+  async function showAnalytics() {
+    if (!canManage()) return;
+    view = 'analytics';
+    $('#mytasks-btn').classList.remove('is-active');
+    $('#analytics-btn').classList.add('is-active');
+    $$('#game-list .game-card').forEach(c => c.classList.remove('is-active'));
+    $('#game-name').textContent = 'Team analytics';
+    const stt = $('#game-status'); stt.textContent = 'across all games'; stt.className = 'game-status';
+    $('#game-meter').innerHTML = ''; $('#game-meter-legend').innerHTML = '';
+    $('#board-tabs').innerHTML = '';
+    $('#manage-game').classList.add('hidden');
+    const canvas = $('#board-canvas');
+    canvas.classList.add('board-canvas--list');
+    canvas.innerHTML = '<div class="board-empty">Loading analytics…</div>';
+
+    let devs = [], feed = [], fb = [];
+    try { [devs, feed, fb] = await Promise.all([window.Board.devAnalytics(), window.Board.activityFeed(60), window.Board.listFeedback()]); }
+    catch (e) { canvas.innerHTML = '<div class="board-empty">Couldn’t load analytics.</div>'; return; }
+
+    const per = CFG.coinsPerPercent || 50;
+    const share = (c) => { const v = c / per; return v >= 10 ? v.toFixed(0) : v.toFixed(1); };
+    const totDone = devs.reduce((a, d) => a + (d.tasks_done || 0), 0);
+    const totPts = devs.reduce((a, d) => a + Number(d.points || 0), 0);
+    const active7 = devs.filter(d => (d.actions_7d || 0) > 0).length;
+
+    const cards = `<div class="an-cards">
+      <div class="an-card"><span class="an-card__n">${devs.length}</span><span class="an-card__l">developers</span></div>
+      <div class="an-card"><span class="an-card__n">${active7}</span><span class="an-card__l">active this week</span></div>
+      <div class="an-card"><span class="an-card__n">${totDone}</span><span class="an-card__l">tasks approved</span></div>
+      <div class="an-card"><span class="an-card__n">◆ ${totPts}</span><span class="an-card__l">coins awarded</span></div>
+    </div>`;
+
+    const devTable = devs.length ? `<div class="an-table">
+      <div class="an-row an-row--head"><span>Developer</span><span>Done</span><span>Open</span><span>Coins</span><span>≈ Share</span><span>7d / 30d</span><span>Last active</span></div>
+      ${devs.map(d => `<div class="an-row">
+        <span class="an-dev"><span class="ava ava--ini">${esc((d.username || '?').charAt(0).toUpperCase())}</span>${esc(d.username || d.discord_id)}</span>
+        <span>${d.tasks_done || 0}</span>
+        <span class="an-soft">${d.tasks_open || 0}</span>
+        <span class="an-coins">◆ ${d.points || 0}</span>
+        <span class="an-share">${share(Number(d.points || 0))}%</span>
+        <span class="an-soft">${d.actions_7d || 0} / ${d.actions_30d || 0}</span>
+        <span class="an-soft">${d.last_active ? rel(d.last_active) : '—'}</span>
+      </div>`).join('')}</div>` : '<p class="cm-none">No developer activity yet.</p>';
+
+    const openFb = fb.filter(f => !f.resolved);
+    const fbBlock = `<div class="an-sub">Feedback ${openFb.length ? `<span class="an-pill">${openFb.length} open</span>` : ''}</div>
+      ${fb.length ? fb.map(fbItem).join('') : '<p class="cm-none">No feedback yet.</p>'}`;
+
+    const feedBlock = `<div class="an-sub">Recent activity</div>
+      ${feed.length ? `<div class="an-feed">${feed.map(feedItem).join('')}</div>` : '<p class="cm-none">No activity logged yet.</p>'}`;
+
+    canvas.innerHTML = `<div class="an-wrap">
+      <div class="an-col">${cards}<div class="an-sub">Developers</div>${devTable}${fbBlock}</div>
+      <div class="an-col an-col--side">${feedBlock}</div>
+    </div>`;
+    $$('#board-canvas [data-fb-resolve]').forEach(b => b.addEventListener('click', async () => {
+      await window.Board.resolveFeedback(b.dataset.fbResolve, b.dataset.fbState === '1');
+      showAnalytics();
+    }));
+  }
+
+  const ACT = {
+    created: { i: '✦', t: 'created' }, claimed: { i: '✋', t: 'claimed' }, assigned: { i: '📌', t: 'was assigned' },
+    submitted: { i: '🔎', t: 'submitted for review' }, approved: { i: '✓', t: 'approved' }, commented: { i: '💬', t: 'commented on' },
+  };
+  function feedItem(a) {
+    const m = ACT[a.type] || { i: '•', t: a.type };
+    const pts = a.meta && a.meta.points ? ` <b class="an-coins">◆ ${a.meta.points}</b>` : '';
+    return `<div class="an-act"><span class="an-act__i">${m.i}</span>
+      <span class="an-act__b"><b>${esc(a.actor_name || 'Someone')}</b> ${m.t} <i>${esc(a.task_title || '')}</i>${pts}
+      <time>${rel(a.created_at)}</time></span></div>`;
+  }
+  const FBK = { note: '💬 Note', idea: '💡 Idea', issue: '⚠️ Issue', blocker: '🛑 Blocker' };
+  function fbItem(f) {
+    return `<div class="fb-card${f.resolved ? ' is-resolved' : ''}">
+      <div class="fb-card__head"><span class="fb-tag fb-tag--${esc(f.kind)}">${FBK[f.kind] || f.kind}</span>
+        <b>${esc(f.author_name || 'dev')}</b><time>${rel(f.created_at)}</time>
+        ${canManage() ? `<button class="fb-resolve" data-fb-resolve="${esc(f.id)}" data-fb-state="${f.resolved ? '0' : '1'}" data-no-sound>${f.resolved ? 'Reopen' : '✓ Resolve'}</button>` : ''}</div>
+      <div class="fb-card__body">${esc(f.body)}</div></div>`;
+  }
+
+  /* ===================== FEEDBACK (compose) ===================== */
+  let fbKind = 'note';
+  async function openFeedback() {
+    fbKind = 'note';
+    $$('#fb-kinds .fb-kind').forEach(b => b.classList.toggle('is-active', b.dataset.kind === 'note'));
+    $('#fb-body').value = '';
+    const list = $('#fb-list');
+    list.innerHTML = '';
+    try {
+      const mine = await window.Board.listFeedback();
+      if (mine.length) list.innerHTML = `<div class="an-sub">${canManage() ? 'All feedback' : 'Your feedback'}</div>` + mine.map(fbItem).join('');
+    } catch (e) {}
+    openModal('#feedback-modal');
+    $('#fb-body').focus();
+  }
+  async function sendFeedback() {
+    const body = $('#fb-body').value.trim();
+    if (!body) return toast('Write something first.', 'error');
+    const r = await window.Board.submitFeedback({ kind: fbKind, body, game_id: game && game.id });
+    if (r && r.error) return toast(r.error, 'error');
+    if (window.Sound) window.Sound.play('select');
+    toast('Thanks — the owner will see this.', 'success');
+    closeModal('#feedback-modal');
+    refreshFeedbackCount();
+  }
+  async function refreshFeedbackCount() {
+    if (!canManage()) { $('#feedback-count').classList.add('hidden'); return; }
+    try {
+      const fb = await window.Board.listFeedback();
+      const open = fb.filter(f => !f.resolved).length;
+      const el = $('#feedback-count'); el.textContent = open; el.classList.toggle('hidden', open === 0);
+    } catch (e) {}
   }
 
   /* ===================== COINS LEDGER ===================== */
@@ -508,7 +713,7 @@
         </div>`;
       }).join('') +
       `<div class="ledger-row ledger-row--total"><span>Total earned</span><span>◆ ${totalEarned}</span><span></span><span>${shareTxt(totalEarned)}%</span></div>`;
-    $('#ledger-note').textContent = `${per} coins ≈ 1% revenue share. Earned = coins on finished (Done) tasks. Change the rate in config.js (coinsPerPercent).`;
+    $('#ledger-note').textContent = `${per} coins ≈ 1% revenue share. Earned = coins on approved (Done) tasks. Change the rate in config.js (coinsPerPercent).`;
   }
 
   /* ===================== CARD MODAL ===================== */
@@ -517,12 +722,23 @@
     const oldAssignee = t.assignee_id; const oldColId = t.column_id;
     const full = canEditDisc(t.discipline);
     const memEdit = canMoveTask(t);
+    const mine = t.assignee_id && t.assignee_id === ACCESS.discord_id;
+    const inReview = isReviewCol(t.column_id);
+    const inDone = isDoneCol(t.column_id);
+    const canSubmit = mine && !inReview && !inDone && t.discipline !== 'overview';
+    const canReview = canApprove(t.discipline) && !inDone;
+    const statusLine = inDone
+      ? `<div class="cm-status cm-status--done">✓ Approved${t.approved_by_name ? ' by ' + esc(t.approved_by_name) : ''} · ◆ ${t.points || 0} awarded to ${esc(t.assignee_name || 'the dev')}</div>`
+      : inReview
+        ? `<div class="cm-status cm-status--review">🔎 In review — waiting on ${canApprove(t.discipline) ? 'your' : 'a lead’s'} approval</div>`
+        : '';
     const ro = (cond) => cond ? '' : 'disabled';
     const cols = columns.filter(c => c.board_id === t.board_id).sort((a, b) => a.sort - b.sort);
     const me = window.Auth.getUser() || {};
     const assignOpts = [{ id: '', name: 'Unassigned' }]
       .concat(ACCESS.discord_id ? [{ id: ACCESS.discord_id, name: (me.global_name || me.username || 'Me') + ' (me)' }] : [])
-      .concat(members.filter(m => m.discord_id !== ACCESS.discord_id).map(m => ({ id: m.discord_id, name: m.username || m.discord_id })));
+      // leads/staff can hand work to anyone; a member can only take it themselves
+      .concat(full ? members.filter(m => m.discord_id !== ACCESS.discord_id).map(m => ({ id: m.discord_id, name: m.username || m.discord_id })) : []);
     const chk = Array.isArray(t.checklist) ? t.checklist.slice() : [];
 
     const panel = $('#card-modal-panel');
@@ -530,6 +746,7 @@
       <button class="modal__x" data-x data-no-sound aria-label="Close">✕</button>
       <span class="card-disc" style="--tint:${DISC[t.discipline].tint}">${esc(DISC[t.discipline].name)}</span>
       <input class="card-title-in" id="cm-title" value="${esc(t.title)}" ${ro(full)} placeholder="Card title" />
+      ${statusLine}
       <div class="card-grid">
         <label class="cm-field"><span>Assignee</span>
           <select id="cm-assignee" data-no-sound ${ro(full || memEdit)}>
@@ -570,6 +787,9 @@
         ${full ? `<button class="btn btn--ghost btn--danger" id="cm-delete" data-no-sound>Delete</button>` : ''}
         <span style="flex:1"></span>
         ${canClaim(t) ? `<button class="btn btn--primary" id="cm-claim" data-no-sound>✋ Claim this task</button>` : ''}
+        ${canSubmit ? `<button class="btn btn--primary" id="cm-submit" data-no-sound>Submit for review →</button>` : ''}
+        ${canReview && inReview ? `<button class="btn btn--ghost" id="cm-reject" data-no-sound>↩ Request changes</button>` : ''}
+        ${canReview ? `<button class="btn btn--primary btn--approve" id="cm-approve" data-no-sound>✓ Approve${t.points > 0 ? ` · ◆ ${t.points}` : ''}</button>` : ''}
         <button class="btn btn--ghost" data-x data-no-sound>Close</button>
         ${(full || memEdit) ? `<button class="btn btn--primary" id="cm-save" data-no-sound>Save changes</button>` : ''}
       </div>`;
@@ -643,9 +863,40 @@
     });
 
     if ($('#cm-claim')) $('#cm-claim').addEventListener('click', async () => { closeCard(); await claimTask(t.id); });
+    if ($('#cm-submit')) $('#cm-submit').addEventListener('click', () => { closeCard(); moveTaskTo(t, 'Review'); });
+    if ($('#cm-approve')) $('#cm-approve').addEventListener('click', () => { closeCard(); moveTaskTo(t, 'Done'); });
+    if ($('#cm-reject')) $('#cm-reject').addEventListener('click', async () => {
+      const note = prompt('What needs changing? (optional — sent as a comment)');
+      closeCard();
+      if (note && note.trim()) { try { await window.Board.addComment(t.id, '↩ Changes requested: ' + note.trim()); } catch (e) {} }
+      moveTaskTo(t, 'In Progress');
+    });
 
     $$('#card-modal [data-x]').forEach(b => b.addEventListener('click', closeCard));
     openModal('#card-modal');
+  }
+
+  /* Move a task to a named column on its own board (submit / approve / reject). */
+  async function moveTaskTo(t, colName) {
+    const target = colByName(t.board_id, colName);
+    if (!target) return toast('Couldn’t find the ' + colName + ' column.', 'error');
+    const oldColId = t.column_id;
+    const maxSort = Math.max(0, ...tasks.filter(x => x.column_id === target.id).map(x => x.sort)) + 1000;
+    try {
+      await window.Board.moveTask(t.id, target.id, maxSort, target.is_done);
+      t.column_id = target.id; t.sort = maxSort;
+      t.completed_at = target.is_done ? new Date().toISOString() : null;
+      if (target.is_done) { t.approved_by_name = (window.Auth.getUser() || {}).global_name || (window.Auth.getUser() || {}).username || 'You'; }
+      if (window.Sound) window.Sound.play(target.is_done ? 'select' : 'tick');
+      const msg = colName === 'Review' ? 'Submitted for review ✓' : colName === 'Done' ? 'Approved ✓ — coins awarded' : 'Sent back for changes';
+      toast(msg, 'success');
+      fireMoveNotifs(t, oldColId, target);
+      refreshAfterMutation();
+      refreshMyCount();
+    } catch (e) {
+      const m = /needs_review/.test(e.message || '') ? 'Only an admin or the discipline lead can approve into Done.' : ('Move failed — ' + e.message);
+      toast(m, 'error'); selectGame(game.id);
+    }
   }
 
   async function loadComments(taskId) {
@@ -718,7 +969,7 @@
     rt = window.Board.realtime(gameId, () => {
       clearTimeout(rtTimer);
       rtTimer = setTimeout(async () => {
-        if (!game || game.id !== gameId) return;
+        if (!game || game.id !== gameId || view !== 'board') return;
         tasks = await window.Board.listTasks(gameId);
         renderHead(); renderTabs(); renderCanvas();
       }, 350);
@@ -732,6 +983,14 @@
 
   function wireGlobal() {
     $('#mytasks-btn').addEventListener('click', showMyTasks);
+    $('#analytics-btn').addEventListener('click', showAnalytics);
+    $('#feedback-btn').addEventListener('click', openFeedback);
+    $('#fb-close').addEventListener('click', () => closeModal('#feedback-modal'));
+    $('#fb-send').addEventListener('click', sendFeedback);
+    $$('#fb-kinds .fb-kind').forEach(b => b.addEventListener('click', () => {
+      fbKind = b.dataset.kind;
+      $$('#fb-kinds .fb-kind').forEach(x => x.classList.toggle('is-active', x === b));
+    }));
     $('#coins-btn').addEventListener('click', openCoins);
     $('#coins-close').addEventListener('click', () => closeModal('#coins-modal'));
     $('#new-game').addEventListener('click', () => openGameModal(null));
