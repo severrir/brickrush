@@ -1,7 +1,21 @@
 ===============================================================================
  BRICK RUSH — STUDIO PANEL & APPLICATIONS GUIDE
- Last updated: 2026-06-29
+ Last updated: 2026-06-29 (v6)
 ===============================================================================
+
+WHAT'S NEW (quick list — details further down):
+  - Applicants must be in the BRICK RUSH Roblox group before they can apply.
+  - Developers get in-app NOTIFICATIONS (approved / changes / assigned / comment)
+    and a "FIND WORK" list of claimable tasks across games.
+  - "My tasks" now shows progress to your next rev-share %, a claim-slot meter,
+    state groups (needs action / in review / approved), quick Submit, and a
+    receipt of what each approved task paid.
+  - Team Analytics is role-scoped: the owner sees everything (and can filter by
+    craft); a discipline LEAD sees only their own craft's developers.
+  - Admin panel: site-visitor stats (today / week / all-time), delete a single
+    application or wipe all (with warnings), Pending queue sorted longest-waiting
+    first, and a "Reviewed" tab where accepted/rejected applications collect.
+
 
 This file explains, in plain language, how the two systems behind BRICK RUSH
 work: the APPLICATIONS pipeline (how people join) and the STUDIO PANEL (how the
@@ -24,6 +38,14 @@ WHO SEES WHAT
   - Anyone can open the site and apply.
   - Only the OWNER and people the owner promotes to ADMIN can open admin.html
     and review applications.
+
+REQUIREMENTS TO APPLY
+  - Log in with Discord (so we can DM the result).
+  - Be a member of the BRICK RUSH Roblox group. The form checks this on the
+    "Who are you?" step — if the entered Roblox account isn't in the group, it
+    blocks continuing and shows a join link. (If Roblox's API is down, it lets
+    them through rather than trapping real applicants.) Toggle in config.js
+    (requireRobloxGroup / robloxGroupId).
 
 THE FLOW
   1. A candidate logs in with Discord, picks a role (Scripter, Modeler &
