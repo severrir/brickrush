@@ -470,9 +470,12 @@
         t.assignee_id = ACCESS.discord_id || u.id || 'me';
         t.assignee_name = u.global_name || u.username || mem.username || 'You';
         t.assignee_avatar = u.avatar || '';
+        // claim auto-moves the card to In Progress
+        const ip = columns.find(c => c.board_id === t.board_id && c.name.toLowerCase() === 'in progress');
+        if (ip) { t.column_id = ip.id; t.completed_at = null; }
       }
       if (window.Sound) window.Sound.play('select');
-      toast('Claimed ✓ — it’s in your tasks now.', 'success');
+      toast('Claimed ✓ — moved to In Progress.', 'success');
       refreshAfterMutation();
       refreshMyCount();
     } else if (r && r.reason === 'limit') {

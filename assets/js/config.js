@@ -19,11 +19,11 @@ window.BRICKRUSH_CONFIG = {
     youtube: 'https://www.youtube.com/channel/UC0OQbcJf10pKR2Zk0MTGsCg',
   },
 
-  /* Roblox group that applicants MUST be in before they can apply.
-     Membership is verified server-side via the verify-roblox-group function. */
+  /* Roblox group. Set requireRobloxGroup: false to make membership mandatory
+     before applying (verified server-side via verify-roblox-group). */
   robloxGroupId: '473814178',
   robloxGroupUrl: 'https://www.roblox.com/communities/473814178/BrickRush#!/about',
-  requireRobloxGroup: true,
+  requireRobloxGroup: false,
 
   /* --- Admin --- */
   // Only this Discord ID can administer once real Discord login is wired up.

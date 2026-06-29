@@ -619,9 +619,12 @@
       t.assignee_id = me;
       t.assignee_name = u.global_name || u.username || mem.username || 'You';
       t.assignee_avatar = u.avatar || '';
+      // claim auto-moves the card to In Progress
+      const ip = st.columns.find(c => c.board_id === t.board_id && c.name.toLowerCase() === 'in progress');
+      if (ip) { t.column_id = ip.id; t.completed_at = null; }
       logDemo(st, 'claimed', t, { assignee: t.assignee_name });
       writeBoard(st);
-      return { ok: true };
+      return { ok: true, moved: Boolean(ip) };
     },
 
     async listComments(taskId) {
