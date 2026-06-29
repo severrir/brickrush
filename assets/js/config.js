@@ -14,10 +14,16 @@ window.BRICKRUSH_CONFIG = {
   /* Social links — replace '' with real URLs when you have them.
      Empty links render as "coming soon" and don't break anything. */
   social: {
-    robloxGroup: '',   // e.g. https://www.roblox.com/groups/0000000/Brick-Rush
-    tiktok: '',        // e.g. https://www.tiktok.com/@brickrush
-    youtube: '',       // e.g. https://www.youtube.com/@brickrush
+    robloxGroup: 'https://www.roblox.com/communities/473814178/BrickRush#!/about',
+    tiktok: 'https://www.tiktok.com/@brickrushhh?lang=en',
+    youtube: 'https://www.youtube.com/channel/UC0OQbcJf10pKR2Zk0MTGsCg',
   },
+
+  /* Roblox group that applicants MUST be in before they can apply.
+     Membership is verified server-side via the verify-roblox-group function. */
+  robloxGroupId: '473814178',
+  robloxGroupUrl: 'https://www.roblox.com/communities/473814178/BrickRush#!/about',
+  requireRobloxGroup: true,
 
   /* --- Admin --- */
   // Only this Discord ID can administer once real Discord login is wired up.

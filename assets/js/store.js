@@ -385,6 +385,11 @@
       { id: uid('f'), author_id: 'demo-ava-001', author_name: 'avaScripts', author_avatar: '', game_id: gid, kind: 'blocker', body: 'The anti-exploit task is blocked until the loot-pickup remote events are finalized — can we pair on the API shape?', resolved: false, created_at: ago(5) },
       { id: uid('f'), author_id: 'demo-theo-002', author_name: 'theoBuilds', author_avatar: '', game_id: gid, kind: 'idea', body: 'We could reuse the city block kit for a night-market sub-area. Cheap win for variety.', resolved: false, created_at: ago(20) },
     ];
+    // demo notifications for the stand-in dev (Ava) so the bell isn't empty
+    st.notifications = [
+      { id: uid('n'), recipient_id: 'demo-ava-001', actor_name: 'You', type: 'approved', task_id: null, task_title: 'Lobby matchmaking + teleport', game_id: gid, discipline: 'scripter', body: 'approved your task (+◆80)', created_at: ago(30), read_at: null },
+      { id: uid('n'), recipient_id: 'demo-ava-001', actor_name: 'theoBuilds', type: 'comment', task_id: null, task_title: 'Round-based heist loop', game_id: gid, discipline: 'scripter', body: 'commented on your task', created_at: ago(2), read_at: null },
+    ];
     return st;
   }
   function readBoard() {
@@ -392,6 +397,7 @@
     if (!st || !st.games) { st = seedBoard(); writeLocal(BOARD_KEY, st); }
     if (!st.activity) st.activity = [];
     if (!st.feedback) st.feedback = [];
+    if (!st.notifications) st.notifications = [];
     return st;
   }
   const writeBoard = (st) => writeLocal(BOARD_KEY, st);
@@ -598,17 +604,62 @@
     /* ---- Everything assigned to me, across all games ---- */
     async myTasks() {
       if (sb) { const { data, error } = await sb.rpc('my_tasks'); if (error) throw error; return data || []; }
-      const me = myId();
-      return readBoard().tasks.filter(t => t.assignee_id === me);
+      const me = myId(); const st = readBoard();
+      return st.tasks.filter(t => t.assignee_id === me).map(t => {
+        const c = st.columns.find(x => x.id === t.column_id) || {};
+        return { ...t, col_name: c.name || '', is_done: !!c.is_done, is_review: (c.name || '').toLowerCase() === 'review' };
+      }).sort((a, b) => (a.is_done - b.is_done) || (new Date(a.due_date || '2999') - new Date(b.due_date || '2999')));
     },
 
-    /* ---- Owner analytics: per-developer work stats ---- */
-    async devAnalytics() {
-      if (sb) { const { data, error } = await sb.rpc('dev_analytics'); if (error) throw error; return data || []; }
+    /* ---- Submit one of my tasks for review (moves it to its Review column) ---- */
+    async submitForReview(taskId) {
+      if (sb) {
+        const { data: t, error: e1 } = await sb.from('tasks').select('board_id').eq('id', taskId).single();
+        if (e1) return { error: e1.message };
+        const { data: c } = await sb.from('board_columns').select('id').eq('board_id', t.board_id).ilike('name', 'review').maybeSingle();
+        if (!c) return { error: 'No review column.' };
+        const { error } = await sb.from('tasks').update({ column_id: c.id, submitted_at: new Date().toISOString() }).eq('id', taskId);
+        if (error) return { error: error.message };
+        return { ok: true };
+      }
+      const st = readBoard(); const t = st.tasks.find(x => x.id === taskId);
+      if (!t) return { error: 'Not found.' };
+      const c = st.columns.find(x => x.board_id === t.board_id && x.name.toLowerCase() === 'review');
+      if (!c) return { error: 'No review column.' };
+      t.column_id = c.id; t.submitted_at = new Date().toISOString(); logDemo(st, 'submitted', t); writeBoard(st);
+      return { ok: true };
+    },
+
+    /* ---- Notifications (things a dev should know about) ---- */
+    async myNotifications(limit) {
+      if (sb) { const { data, error } = await sb.rpc('my_notifications', { p_limit: limit || 40 }); if (error) throw error; return data || []; }
+      return readBoard().notifications.filter(n => n.recipient_id === myId()).slice(0, limit || 40);
+    },
+    async markNotificationsRead() {
+      if (sb) { await sb.rpc('mark_notifications_read'); return; }
+      const st = readBoard(); const me = myId();
+      st.notifications.forEach(n => { if (n.recipient_id === me && !n.read_at) n.read_at = new Date().toISOString(); });
+      writeBoard(st);
+    },
+
+    /* ---- Tasks a developer can grab right now (their discipline, unclaimed) ---- */
+    async availableToClaim() {
+      if (sb) { const { data, error } = await sb.rpc('available_to_claim'); if (error) throw error; return data || []; }
+      const st = readBoard();
+      const doneCols = new Set(st.columns.filter(c => c.is_done).map(c => c.id));
+      const order = { urgent: 0, high: 1, medium: 2, low: 3 };
+      return st.tasks
+        .filter(t => !t.assignee_id && t.discipline !== 'overview' && !doneCols.has(t.column_id))
+        .sort((a, b) => (order[a.priority] ?? 3) - (order[b.priority] ?? 3) || (b.points || 0) - (a.points || 0));
+    },
+
+    /* ---- Owner/lead analytics: per-developer work stats (discipline-scoped) ---- */
+    async devAnalytics(discipline) {
+      if (sb) { const { data, error } = await sb.rpc('dev_analytics', { p_discipline: discipline || null }); if (error) throw error; return data || []; }
       const st = readBoard();
       const doneCols = new Set(st.columns.filter(c => c.is_done).map(c => c.id));
       const map = {};
-      st.tasks.filter(t => t.assignee_id).forEach(t => {
+      st.tasks.filter(t => t.assignee_id && (!discipline || t.discipline === discipline)).forEach(t => {
         const m = map[t.assignee_id] || (map[t.assignee_id] = { discord_id: t.assignee_id, username: t.assignee_name, tasks_done: 0, tasks_open: 0, points: 0, pending_points: 0 });
         if (doneCols.has(t.column_id)) { m.tasks_done++; m.points += t.points || 0; }
         else { m.tasks_open++; m.pending_points += t.points || 0; }
@@ -625,16 +676,17 @@
       return Object.values(map).sort((a, b) => b.points - a.points || b.tasks_done - a.tasks_done);
     },
 
-    /* ---- Owner activity feed: who did what, lately ---- */
-    async activityFeed(limit) {
-      if (sb) { const { data, error } = await sb.rpc('activity_feed', { p_limit: limit || 80 }); if (error) throw error; return data || []; }
-      return readBoard().activity.slice(0, limit || 80);
+    /* ---- Activity feed: who did what, lately (discipline-scoped) ---- */
+    async activityFeed(limit, discipline) {
+      if (sb) { const { data, error } = await sb.rpc('activity_feed', { p_limit: limit || 80, p_discipline: discipline || null }); if (error) throw error; return data || []; }
+      return readBoard().activity.filter(a => !discipline || a.discipline === discipline).slice(0, limit || 80);
     },
 
     /* ---- Dev feedback ---- */
     async submitFeedback({ kind, body, game_id }) {
       const u = (window.Auth && window.Auth.getUser && window.Auth.getUser()) || {};
-      const rec = { author_id: myId(), author_name: u.global_name || u.username || 'You', author_avatar: u.avatar || '', game_id: game_id || null, kind: kind || 'note', body };
+      const okKind = ['note', 'idea', 'issue', 'blocker'].includes(kind) ? kind : 'note';
+      const rec = { author_id: myId(), author_name: u.global_name || u.username || 'You', author_avatar: u.avatar || '', game_id: game_id || null, kind: okKind, body: String(body || '').slice(0, 2000) };
       if (sb) { const { error } = await sb.from('feedback').insert(rec); if (error) return { error: error.message }; return { ok: true }; }
       const st = readBoard(); st.feedback.unshift({ id: uid('f'), ...rec, resolved: false, created_at: new Date().toISOString() }); writeBoard(st);
       return { ok: true };

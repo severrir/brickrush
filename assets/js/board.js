@@ -88,12 +88,15 @@
       $('#new-game').classList.remove('hidden');
       $('#nav-admin-link').classList.remove('hidden');
       $('#manage-game').classList.remove('hidden');
-      $('#analytics-btn').classList.remove('hidden');
     }
+    // analytics is for the owner (all) and discipline leads (their craft only)
+    if (canManage() || (ACCESS.leads || []).length) $('#analytics-btn').classList.remove('hidden');
     wireGlobal();
     await loadGames();
     refreshMyCount();
     refreshFeedbackCount();
+    refreshNotifCount();
+    refreshFindWorkCount();
   }
 
   function gate(kind) {
@@ -168,8 +171,7 @@
   async function selectGame(id) {
     game = GAMES.find(g => g.id === id) || game;
     view = 'board';
-    const mtb = $('#mytasks-btn'); if (mtb) mtb.classList.remove('is-active');
-    const anb = $('#analytics-btn'); if (anb) anb.classList.remove('is-active');
+    resetRailActive();
     $('#board-canvas').classList.remove('board-canvas--list');
     if (canManage()) $('#manage-game').classList.remove('hidden');
     [boards, columns, tasks, members] = await Promise.all([
@@ -306,6 +308,13 @@
     </article>`;
   }
 
+  function attachmentPreview(url) {
+    if (!url) return '';
+    const u = esc(url);
+    const isImg = /\.(png|jpe?g|gif|webp|avif|svg)(\?|$)/i.test(url);
+    if (isImg) return `<a class="cm-att-prev" href="${u}" target="_blank" rel="noopener"><img src="${u}" alt="attachment preview" loading="lazy" onerror="this.closest('.cm-att-prev').classList.add('cm-att-prev--broken')" /><span class="cm-att-prev__open">↗ Open</span></a>`;
+    return `<a class="cm-att-link" href="${u}" target="_blank" rel="noopener">🔗 Open attachment</a>`;
+  }
   function dueChip(d) {
     const date = new Date(d + 'T00:00:00');
     const days = Math.ceil((date - new Date().setHours(0, 0, 0, 0)) / 864e5);
@@ -502,9 +511,7 @@
 
   async function showMyTasks() {
     view = 'mytasks';
-    $('#mytasks-btn').classList.add('is-active');
-    $('#analytics-btn').classList.remove('is-active');
-    $$('#game-list .game-card').forEach(c => c.classList.remove('is-active'));
+    resetRailActive(); $('#mytasks-btn').classList.add('is-active');
     try { myTaskList = await window.Board.myTasks(); } catch (e) { myTaskList = []; }
     const open = myTaskList.filter(t => !t.completed_at).length;
     const cnt = $('#mytasks-count'); if (cnt) { cnt.textContent = open; cnt.classList.toggle('hidden', open === 0); }
@@ -520,38 +527,75 @@
       canvas.innerHTML = `<div class="board-empty">◎ Nothing assigned to you right now. Claim an unassigned card from a board (✋ Claim) or wait for a lead to assign you one — it lands here, across every game.</div>`;
       return;
     }
-    const byGame = {};
-    myTaskList.forEach(t => { (byGame[t.game_id] = byGame[t.game_id] || []).push(t); });
-    const gName = (id) => { const g = GAMES.find(x => x.id === id); return g ? g.name : 'Game'; };
-    const L = CFG.claimLimits || { easy: 3, medium: 2, hard: 1 };
-    const earn = await myEarnings();
     const per = CFG.coinsPerPercent || 50;
     const share = (c) => { const v = c / per; return v >= 10 ? v.toFixed(0) : v.toFixed(1); };
+    const earn = await myEarnings();
+
+    // progress toward the next whole rev-share %
+    let progressBar = '';
+    if (earn) {
+      const into = earn.earned % per;                 // coins into the current %
+      const pctNow = Math.floor(earn.earned / per);   // whole % already reached
+      const fill = Math.round(into / per * 100);
+      progressBar = `<div class="mt-prog">
+        <div class="mt-prog__row"><span>Progress to <b>${pctNow + 1}%</b> rev share</span><span class="mt-prog__n">◆ ${into} / ${per}</span></div>
+        <div class="mt-prog__bar"><span style="width:${fill}%"></span></div></div>`;
+    }
     const earnBanner = earn ? `<div class="mt-earn">
       <div class="mt-earn__big">◆ ${earn.earned}<span>earned</span></div>
       <div class="mt-earn__big mt-earn__big--soft">◆ ${earn.pending}<span>in progress</span></div>
       <div class="mt-earn__big mt-earn__big--share">${share(earn.earned)}%<span>≈ rev share</span></div>
-    </div>` : '';
-    const hint = `<div class="mt-hint">You can hold up to <b>${L.easy} easy</b>, <b>${L.medium} medium</b>, and <b>${L.hard} hard</b> task at once — finishing one frees a slot to claim another.</div>`;
-    canvas.innerHTML = earnBanner + hint + Object.keys(byGame).map(gid => `
-      <div class="mt-group">
-        <div class="mt-group__h">${esc(gName(gid))}</div>
-        ${byGame[gid].map(mtItem).join('')}
-      </div>`).join('');
+    </div>${progressBar}` : '';
+    const hint = `<div class="mt-hint">Claim caps: ${claimMeterHtml()} — finishing one frees a slot.</div>`;
+
+    // group by what the dev needs to do
+    const isDone = (t) => t.is_done || !!t.completed_at;
+    const inReview = (t) => t.is_review && !isDone(t);
+    const buckets = [
+      ['Needs your action', myTaskList.filter(t => !isDone(t) && !inReview(t))],
+      ['In review · waiting on a lead', myTaskList.filter(inReview)],
+      ['Approved', myTaskList.filter(isDone)],
+    ];
+    const groups = buckets.filter(([, arr]) => arr.length).map(([label, arr]) =>
+      `<div class="mt-group"><div class="mt-group__h">${label} <span class="mt-group__n">${arr.length}</span></div>${arr.map(mtItem).join('')}</div>`
+    ).join('');
+
+    // earnings receipt (approved tasks + what they paid)
+    const paid = myTaskList.filter(isDone).filter(t => (t.points || 0) > 0);
+    const receipt = paid.length ? `<div class="mt-group"><div class="mt-group__h">Earnings receipt</div>
+      ${paid.map(t => `<div class="mt-receipt"><span>${esc(t.title)}</span><b>◆ ${t.points}</b></div>`).join('')}
+      <div class="mt-receipt mt-receipt--total"><span>Total earned</span><b>◆ ${paid.reduce((a, t) => a + (t.points || 0), 0)}</b></div></div>` : '';
+
+    canvas.innerHTML = earnBanner + hint + groups + receipt;
     $$('#board-canvas [data-mt]').forEach(el => el.addEventListener('click', () => jumpToTask(el.dataset.mt, el.dataset.game, el.dataset.disc)));
+    $$('#board-canvas [data-mt-submit]').forEach(b => b.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const r = await window.Board.submitForReview(b.dataset.mtSubmit);
+      if (r && r.error) return toast('Couldn’t submit — ' + r.error, 'error');
+      if (window.Sound) window.Sound.play('select');
+      toast('Submitted for review ✓', 'success');
+      showMyTasks(); refreshMyCount();
+    }));
   }
 
   function mtItem(t) {
     const pri = PRI[t.priority] || PRI.medium;
     const due = t.due_date ? dueChip(t.due_date) : '';
-    const done = Boolean(t.completed_at);
-    const meta = [DISC[t.discipline] ? DISC[t.discipline].short : t.discipline, DIFF[diffOf(t)].l, t.points > 0 ? `◆ ${t.points}` : ''].filter(Boolean).join(' · ');
-    return `<button class="mt-item${done ? ' is-done' : ''}" data-mt="${t.id}" data-game="${t.game_id}" data-disc="${t.discipline}" style="--pri:${pri.c}" data-no-sound>
+    const done = t.is_done || Boolean(t.completed_at);
+    const review = t.is_review && !done;
+    const g = GAMES.find(x => x.id === t.game_id);
+    const meta = [g ? g.name : '', DISC[t.discipline] ? DISC[t.discipline].short : t.discipline, DIFF[diffOf(t)].l, t.points > 0 ? `◆ ${t.points}` : ''].filter(Boolean).join(' · ');
+    const canSubmit = !done && !review && t.discipline !== 'overview';
+    const right = done ? '<span class="mt-done">✓ approved</span>'
+      : review ? '<span class="mt-review">🔎 in review</span>'
+        : canSubmit ? `<button class="mt-submit" data-mt-submit="${t.id}" data-no-sound>Submit →</button>`
+          : `<span class="mt-pri" style="color:${pri.c}">${pri.l}</span>`;
+    return `<div class="mt-item${done ? ' is-done' : ''}" data-mt="${t.id}" data-game="${t.game_id}" data-disc="${t.discipline}" style="--pri:${pri.c}" data-no-sound>
       <span class="mt-item__pri"></span>
       <span class="mt-item__main"><b>${esc(t.title)}</b>
         <span class="mt-item__meta">${esc(meta)}${due ? ' · ' + due : ''}</span></span>
-      ${done ? '<span class="mt-done">✓ done</span>' : `<span class="mt-pri" style="color:${pri.c}">${pri.l}</span>`}
-    </button>`;
+      ${right}
+    </div>`;
   }
 
   async function jumpToTask(taskId, gameId, disc) {
@@ -570,15 +614,17 @@
     } catch (e) { return null; }
   }
 
-  /* ===================== TEAM ANALYTICS (staff) ===================== */
-  async function showAnalytics() {
-    if (!canManage()) return;
+  /* ===================== TEAM ANALYTICS (owner = all, lead = own craft) ===================== */
+  async function showAnalytics(disc) {
+    const lead = !canManage();
+    // a lead is locked to their own discipline; the owner can filter or see all
+    const scope = lead ? ((ACCESS.leads || [])[0] || null) : (disc || null);
+    if (lead && !scope) return;
+    if (!canManage() && !(ACCESS.leads || []).length) return;
     view = 'analytics';
-    $('#mytasks-btn').classList.remove('is-active');
-    $('#analytics-btn').classList.add('is-active');
-    $$('#game-list .game-card').forEach(c => c.classList.remove('is-active'));
-    $('#game-name').textContent = 'Team analytics';
-    const stt = $('#game-status'); stt.textContent = 'across all games'; stt.className = 'game-status';
+    resetRailActive(); $('#analytics-btn').classList.add('is-active');
+    $('#game-name').textContent = scope ? (DISC[scope] ? DISC[scope].name : scope) + ' analytics' : 'Team analytics';
+    const stt = $('#game-status'); stt.textContent = lead ? 'your craft' : 'across all games'; stt.className = 'game-status';
     $('#game-meter').innerHTML = ''; $('#game-meter-legend').innerHTML = '';
     $('#board-tabs').innerHTML = '';
     $('#manage-game').classList.add('hidden');
@@ -587,8 +633,16 @@
     canvas.innerHTML = '<div class="board-empty">Loading analytics…</div>';
 
     let devs = [], feed = [], fb = [];
-    try { [devs, feed, fb] = await Promise.all([window.Board.devAnalytics(), window.Board.activityFeed(60), window.Board.listFeedback()]); }
-    catch (e) { canvas.innerHTML = '<div class="board-empty">Couldn’t load analytics.</div>'; return; }
+    try {
+      const proms = [window.Board.devAnalytics(scope), window.Board.activityFeed(60, scope)];
+      if (canManage()) proms.push(window.Board.listFeedback());
+      const res = await Promise.all(proms);
+      devs = res[0]; feed = res[1]; fb = canManage() ? res[2] : [];
+    } catch (e) { canvas.innerHTML = '<div class="board-empty">Couldn’t load analytics.</div>'; return; }
+
+    // owner-only discipline filter
+    const filterRow = canManage() ? `<div class="an-filter">${[['', 'All'], ['scripter', 'Scripting'], ['modeler_animator', 'Modeling'], ['uiux', 'UI/UX']]
+      .map(([v, l]) => `<button class="an-fbtn${(disc || '') === v ? ' is-active' : ''}" data-an-disc="${v}" data-no-sound>${l}</button>`).join('')}</div>` : '';
 
     const per = CFG.coinsPerPercent || 50;
     const share = (c) => { const v = c / per; return v >= 10 ? v.toFixed(0) : v.toFixed(1); };
@@ -616,19 +670,20 @@
       </div>`).join('')}</div>` : '<p class="cm-none">No developer activity yet.</p>';
 
     const openFb = fb.filter(f => !f.resolved);
-    const fbBlock = `<div class="an-sub">Feedback ${openFb.length ? `<span class="an-pill">${openFb.length} open</span>` : ''}</div>
-      ${fb.length ? fb.map(fbItem).join('') : '<p class="cm-none">No feedback yet.</p>'}`;
+    const fbBlock = canManage() ? `<div class="an-sub">Feedback ${openFb.length ? `<span class="an-pill">${openFb.length} open</span>` : ''}</div>
+      ${fb.length ? fb.map(fbItem).join('') : '<p class="cm-none">No feedback yet.</p>'}` : '';
 
     const feedBlock = `<div class="an-sub">Recent activity</div>
       ${feed.length ? `<div class="an-feed">${feed.map(feedItem).join('')}</div>` : '<p class="cm-none">No activity logged yet.</p>'}`;
 
     canvas.innerHTML = `<div class="an-wrap">
-      <div class="an-col">${cards}<div class="an-sub">Developers</div>${devTable}${fbBlock}</div>
+      <div class="an-col">${filterRow}${cards}<div class="an-sub">Developers</div>${devTable}${fbBlock}</div>
       <div class="an-col an-col--side">${feedBlock}</div>
     </div>`;
+    $$('#board-canvas [data-an-disc]').forEach(b => b.addEventListener('click', () => showAnalytics(b.dataset.anDisc || null)));
     $$('#board-canvas [data-fb-resolve]').forEach(b => b.addEventListener('click', async () => {
       await window.Board.resolveFeedback(b.dataset.fbResolve, b.dataset.fbState === '1');
-      showAnalytics();
+      showAnalytics(disc);
     }));
   }
 
@@ -638,15 +693,15 @@
   };
   function feedItem(a) {
     const m = ACT[a.type] || { i: '•', t: a.type };
-    const pts = a.meta && a.meta.points ? ` <b class="an-coins">◆ ${a.meta.points}</b>` : '';
-    return `<div class="an-act"><span class="an-act__i">${m.i}</span>
-      <span class="an-act__b"><b>${esc(a.actor_name || 'Someone')}</b> ${m.t} <i>${esc(a.task_title || '')}</i>${pts}
+    const pts = a.meta && a.meta.points ? ` <b class="an-coins">◆ ${Number(a.meta.points) || 0}</b>` : '';
+    return `<div class="an-act"><span class="an-act__i">${esc(m.i)}</span>
+      <span class="an-act__b"><b>${esc(a.actor_name || 'Someone')}</b> ${esc(m.t)} <i>${esc(a.task_title || '')}</i>${pts}
       <time>${rel(a.created_at)}</time></span></div>`;
   }
   const FBK = { note: '💬 Note', idea: '💡 Idea', issue: '⚠️ Issue', blocker: '🛑 Blocker' };
   function fbItem(f) {
     return `<div class="fb-card${f.resolved ? ' is-resolved' : ''}">
-      <div class="fb-card__head"><span class="fb-tag fb-tag--${esc(f.kind)}">${FBK[f.kind] || f.kind}</span>
+      <div class="fb-card__head"><span class="fb-tag fb-tag--${esc(f.kind)}">${FBK[f.kind] || esc(f.kind)}</span>
         <b>${esc(f.author_name || 'dev')}</b><time>${rel(f.created_at)}</time>
         ${canManage() ? `<button class="fb-resolve" data-fb-resolve="${esc(f.id)}" data-fb-state="${f.resolved ? '0' : '1'}" data-no-sound>${f.resolved ? 'Reopen' : '✓ Resolve'}</button>` : ''}</div>
       <div class="fb-card__body">${esc(f.body)}</div></div>`;
@@ -684,6 +739,94 @@
       const open = fb.filter(f => !f.resolved).length;
       const el = $('#feedback-count'); el.textContent = open; el.classList.toggle('hidden', open === 0);
     } catch (e) {}
+  }
+
+  /* ===================== NOTIFICATIONS ===================== */
+  const NOTIF = {
+    approved: { i: '✓', c: 'var(--green)' }, changes_requested: { i: '↩', c: 'var(--amber)' },
+    assigned: { i: '📌', c: 'var(--violet)' }, comment: { i: '💬', c: 'var(--cyan)' },
+  };
+  async function refreshNotifCount() {
+    try {
+      const list = await window.Board.myNotifications(40);
+      const unread = list.filter(n => !n.read_at).length;
+      const el = $('#notif-count'); el.textContent = unread; el.classList.toggle('hidden', unread === 0);
+    } catch (e) {}
+  }
+  async function openNotifications() {
+    const wrap = $('#notif-list'); wrap.innerHTML = '<p class="cm-none">Loading…</p>';
+    openModal('#notif-modal');
+    let list = [];
+    try { list = await window.Board.myNotifications(40); } catch (e) { wrap.innerHTML = '<p class="cm-none">Couldn’t load notifications.</p>'; return; }
+    if (!list.length) { wrap.innerHTML = '<p class="cm-none">You’re all caught up — nothing new.</p>'; }
+    else {
+      wrap.innerHTML = list.map(notifItem).join('');
+      $$('#notif-list [data-notif]').forEach(el => el.addEventListener('click', () => {
+        closeModal('#notif-modal');
+        if (el.dataset.game && el.dataset.task) jumpToTask(el.dataset.task, el.dataset.game, el.dataset.disc);
+      }));
+    }
+    try { await window.Board.markNotificationsRead(); } catch (e) {}
+    $('#notif-count').classList.add('hidden');
+  }
+  function notifItem(n) {
+    const m = NOTIF[n.type] || { i: '•', c: 'var(--text-muted)' };
+    return `<button class="notif${n.read_at ? '' : ' is-unread'}" data-notif data-task="${esc(n.task_id || '')}" data-game="${esc(n.game_id || '')}" data-disc="${esc(n.discipline || '')}" data-no-sound>
+      <span class="notif__i" style="color:${m.c}">${esc(m.i)}</span>
+      <span class="notif__b"><b>${esc(n.actor_name || 'Someone')}</b> ${esc(n.body || '')} <i>${esc(n.task_title || '')}</i><time>${rel(n.created_at)}</time></span>
+      ${n.read_at ? '' : '<span class="notif__dot"></span>'}
+    </button>`;
+  }
+
+  /* ===================== FIND WORK (available to claim) ===================== */
+  async function refreshFindWorkCount() {
+    try {
+      const list = await window.Board.availableToClaim();
+      const el = $('#findwork-count'); el.textContent = list.length; el.classList.toggle('hidden', list.length === 0);
+    } catch (e) {}
+  }
+  function claimMeterHtml() {
+    const L = CFG.claimLimits || { easy: 3, medium: 2, hard: 1 };
+    const open = (myTaskList || []).filter(t => !t.completed_at);
+    const used = (d) => open.filter(t => diffOf(t) === d).length;
+    return '<span class="slots">' + ['easy', 'medium', 'hard'].map(d => {
+      const u = used(d), full = u >= L[d];
+      return `<span class="slot slot--${d}${full ? ' is-full' : ''}">${DIFF[d].l} ${u}/${L[d]}</span>`;
+    }).join('') + '</span>';
+  }
+  async function showFindWork() {
+    view = 'findwork';
+    resetRailActive(); $('#findwork-btn').classList.add('is-active');
+    try { myTaskList = await window.Board.myTasks(); } catch (e) {}
+    $('#game-name').textContent = 'Find work';
+    const stt = $('#game-status'); stt.textContent = 'unclaimed · your craft'; stt.className = 'game-status';
+    $('#game-meter').innerHTML = ''; $('#game-meter-legend').innerHTML = ''; $('#board-tabs').innerHTML = '';
+    $('#manage-game').classList.add('hidden');
+    const canvas = $('#board-canvas'); canvas.classList.add('board-canvas--list');
+    canvas.innerHTML = '<div class="board-empty">Loading…</div>';
+    let list = [];
+    try { list = await window.Board.availableToClaim(); } catch (e) { canvas.innerHTML = '<div class="board-empty">Couldn’t load.</div>'; return; }
+    const el = $('#findwork-count'); el.textContent = list.length; el.classList.toggle('hidden', list.length === 0);
+    if (!list.length) { canvas.innerHTML = `<div class="board-empty">◎ Nothing to claim right now. New unclaimed tasks in your discipline land here, across every game.</div>`; return; }
+    canvas.innerHTML = `<div class="mt-hint">Grab a task to make it yours — it moves to your tasks. ${claimMeterHtml()}</div>
+      <div class="mt-group"><div class="mt-group__h">${list.length} available</div>${list.map(fwItem).join('')}</div>`;
+    $$('#board-canvas [data-fw-open]').forEach(x => x.addEventListener('click', () => jumpToTask(x.dataset.fwOpen, x.dataset.game, x.dataset.disc)));
+    $$('#board-canvas [data-fw-claim]').forEach(b => b.addEventListener('click', async (e) => { e.stopPropagation(); await claimTask(b.dataset.fwClaim); showFindWork(); }));
+  }
+  function fwItem(t) {
+    const pri = PRI[t.priority] || PRI.medium; const d = diffOf(t);
+    const g = GAMES.find(x => x.id === t.game_id); const gn = g ? g.name : '';
+    const meta = [DISC[t.discipline] ? DISC[t.discipline].short : t.discipline, gn, DIFF[d].l].filter(Boolean).join(' · ');
+    return `<div class="mt-item" data-fw-open="${t.id}" data-game="${t.game_id}" data-disc="${t.discipline}" style="--pri:${pri.c}" data-no-sound>
+      <span class="mt-item__pri"></span>
+      <span class="mt-item__main"><b>${esc(t.title)}</b><span class="mt-item__meta">${esc(meta)}${t.points > 0 ? ` · ◆ ${t.points}` : ''}</span></span>
+      <button class="claim-btn" data-fw-claim="${t.id}" data-no-sound>✋ Claim</button>
+    </div>`;
+  }
+
+  function resetRailActive() {
+    ['#mytasks-btn', '#analytics-btn', '#findwork-btn'].forEach(s => { const e = $(s); if (e) e.classList.remove('is-active'); });
+    $$('#game-list .game-card').forEach(c => c.classList.remove('is-active'));
   }
 
   /* ===================== COINS LEDGER ===================== */
@@ -769,6 +912,7 @@
         <label class="cm-field"><span>Labels <i>(comma-sep)</i></span><input id="cm-labels" value="${esc((t.labels || []).join(', '))}" ${ro(full)} /></label>
       </div>
       <label class="cm-field"><span>Attachment link</span><input id="cm-att" value="${esc(t.attachment_url || '')}" ${ro(full)} placeholder="Figma / Drive / Roblox link" /></label>
+      ${attachmentPreview(t.attachment_url)}
       <label class="cm-field"><span>Description</span><textarea id="cm-desc" rows="3" ${ro(full)} placeholder="Details, acceptance criteria…">${esc(t.description || '')}</textarea></label>
 
       <div class="cm-checklist">
@@ -983,7 +1127,10 @@
 
   function wireGlobal() {
     $('#mytasks-btn').addEventListener('click', showMyTasks);
-    $('#analytics-btn').addEventListener('click', showAnalytics);
+    $('#findwork-btn').addEventListener('click', showFindWork);
+    $('#notif-btn').addEventListener('click', openNotifications);
+    $('#notif-close').addEventListener('click', () => closeModal('#notif-modal'));
+    $('#analytics-btn').addEventListener('click', () => showAnalytics());
     $('#feedback-btn').addEventListener('click', openFeedback);
     $('#fb-close').addEventListener('click', () => closeModal('#feedback-modal'));
     $('#fb-send').addEventListener('click', sendFeedback);

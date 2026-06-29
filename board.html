@@ -62,6 +62,12 @@
         <button class="rail-nav" id="mytasks-btn" data-no-sound>
           <span>◎ My tasks</span><span class="rail-nav__n hidden" id="mytasks-count">0</span>
         </button>
+        <button class="rail-nav rail-nav--sub" id="findwork-btn" data-no-sound>
+          <span>🔎 Find work</span><span class="rail-nav__n hidden" id="findwork-count">0</span>
+        </button>
+        <button class="rail-nav rail-nav--sub" id="notif-btn" data-no-sound>
+          <span>🔔 Notifications</span><span class="rail-nav__n rail-nav__n--alert hidden" id="notif-count">0</span>
+        </button>
         <button class="rail-nav rail-nav--sub hidden" id="analytics-btn" data-no-sound>
           <span>📊 Team analytics</span>
         </button>
@@ -196,6 +202,16 @@
       <div class="ledger" id="ledger"></div>
       <p class="ledger-note" id="ledger-note"></p>
       <div class="modal__actions"><span style="flex:1"></span><button class="btn btn--ghost" id="coins-close" data-no-sound>Done</button></div>
+    </div>
+  </div>
+
+  <!-- ===== Notifications modal ===== -->
+  <div class="modal-overlay hidden" id="notif-modal">
+    <div class="modal modal--wide">
+      <h3>🔔 Notifications</h3>
+      <p class="muted">Approvals, change requests, assignments, and comments on your tasks.</p>
+      <div class="notif-list" id="notif-list"></div>
+      <div class="modal__actions"><span style="flex:1"></span><button class="btn btn--ghost" id="notif-close" data-no-sound>Done</button></div>
     </div>
   </div>
 
