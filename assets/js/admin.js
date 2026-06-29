@@ -11,11 +11,11 @@
 
   let apps = [];
   let bannedSet = new Set();
-  let filter = 'all';
+  let filter = 'pending';
   let query = '';
   let pendingDecision = null;
   let selected = new Set();
-  let sortMode = 'newest';   // 'newest' | 'rating'
+  let sortMode = 'oldest';   // 'oldest' (longest waiting) | 'newest' | 'rating'
   let lastDecision = null;
   let newCount = 0;
 
@@ -125,11 +125,24 @@
     }));
     $('#bulk-clear').addEventListener('click', () => { selected.clear(); renderQueue(); });
 
-    // sort toggle
+    // sort toggle: longest-waiting → newest → top-rated
     $('#sort-toggle').addEventListener('click', () => {
-      sortMode = sortMode === 'newest' ? 'rating' : 'newest';
-      $('#sort-toggle').innerHTML = sortMode === 'rating' ? '★ Top-rated' : '🕑 Newest';
+      sortMode = sortMode === 'oldest' ? 'newest' : sortMode === 'newest' ? 'rating' : 'oldest';
+      $('#sort-toggle').innerHTML = sortMode === 'rating' ? '★ Top-rated' : sortMode === 'newest' ? '🕑 Newest' : '🕑 Longest waiting';
       renderQueue();
+    });
+
+    // wipe all applications (double-confirm)
+    $('#wipe-apps').addEventListener('click', async () => {
+      if (!apps.length) { window.toast('Nothing to wipe.', ''); return; }
+      const n = apps.length;
+      if (!confirm(`⚠ Wipe ALL ${n} application${n > 1 ? 's' : ''} permanently? This cannot be undone.`)) return;
+      if (!confirm(`Last check — this deletes every application (${n}). Continue?`)) return;
+      const r = await Store.wipeApplications();
+      if (r && r.error) { window.toast(r.error, 'error', true); return; }
+      if (window.Sound) window.Sound.play('reject');
+      window.toast('All applications wiped.', '');
+      selected.clear(); await load();
     });
 
     // undo last decision
@@ -279,7 +292,23 @@
     const bans = await Store.listBans();
     bannedSet = new Set(bans.map(b => b.discord_id).filter(Boolean));
     apps = await Store.listApplications();
-    renderStats(); renderInsights(); renderQueue();
+    renderStats(); renderInsights(); renderVisitors(); renderQueue();
+  }
+
+  /* ---------- Visitor analytics ---------- */
+  async function renderVisitors() {
+    const el = $('#visitor-grid'); if (!el) return;
+    let s = {};
+    try { s = await Store.visitorStats(); } catch (e) { el.innerHTML = '<p class="muted" style="font-size:0.85rem">Couldn’t load visitor stats.</p>'; return; }
+    const days = s.days || [];
+    const dmax = Math.max(1, ...days.map(d => d.n));
+    el.innerHTML = `
+      <div class="vstat"><div class="vstat__n gradient-text">${s.today_people || 0}</div><div class="vstat__l">Today</div></div>
+      <div class="vstat"><div class="vstat__n">${s.week_people || 0}</div><div class="vstat__l">This week</div></div>
+      <div class="vstat"><div class="vstat__n">${s.total_people || 0}</div><div class="vstat__l">All-time people</div></div>
+      <div class="vstat"><div class="vstat__n">${s.total_views || 0}</div><div class="vstat__l">Total views</div></div>
+      <div class="vstat vstat--spark"><div class="vstat__l">Last 14 days (people/day)</div>
+        <div class="spark">${days.length ? days.map(d => `<span class="spark__bar" style="height:${Math.max(8, d.n / dmax * 100)}%" title="${esc(d.d)}: ${d.n}"></span>`).join('') : '<span class="muted" style="font-size:0.8rem">No visits logged yet.</span>'}</div></div>`;
   }
 
   function renderInsights() {
@@ -371,7 +400,8 @@
 
   function filtered() {
     const out = apps.filter(a => {
-      if (filter !== 'all' && a.status !== filter) return false;
+      if (filter === 'reviewed') { if (a.status === 'pending') return false; }
+      else if (filter !== 'all' && a.status !== filter) return false;
       if (query) {
         const hay = `${a.full_name} ${a.discord_username} ${a.roblox_username} ${roleLabel(a.role)} ${(a.tags || []).join(' ')}`.toLowerCase();
         if (!hay.includes(query)) return false;
@@ -380,6 +410,8 @@
     });
     if (sortMode === 'rating') {
       out.sort((a, b) => (b.rating || 0) - (a.rating || 0) || new Date(b.created_at) - new Date(a.created_at));
+    } else if (sortMode === 'oldest') {
+      out.sort((a, b) => new Date(a.created_at) - new Date(b.created_at)); // longest waiting first
     } else {
       out.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     }
@@ -447,6 +479,7 @@
             : `<button class="btn btn--ban" data-ban="ban"${a.discord_id ? '' : ' disabled title="No Discord ID — can\'t ban"'}>⛔ Ban</button>`}
           <button class="btn btn--ghost btn--sm" data-pdf data-no-sound>⤓ PDF</button>
           ${a.status === 'accepted' && a.discord_id ? `<button class="btn btn--primary btn--sm" data-enroll data-no-sound>＋ Add to game</button>` : ''}
+          <button class="btn btn--ghost btn--sm btn--danger" data-delete data-no-sound title="Delete application">🗑</button>
         </div>
       </article>`;
     }).join('');
@@ -508,6 +541,18 @@
 
       const enroll = $('[data-enroll]', card);
       if (enroll) enroll.addEventListener('click', () => openEnroll(apps.find(x => x.id === id)));
+
+      const del = $('[data-delete]', card);
+      if (del) del.addEventListener('click', async () => {
+        const a = apps.find(x => x.id === id);
+        if (!confirm(`Delete ${a ? a.full_name : 'this application'} permanently? This can’t be undone.`)) return;
+        const r = await Store.deleteApplication(id);
+        if (r && r.error) { window.toast(r.error, 'error', true); return; }
+        if (window.Sound) window.Sound.play('tick');
+        selected.delete(id);
+        window.toast('Application deleted.', '');
+        await load();
+      });
 
       // roblox info (live only)
       if (Store.live && window.SB) loadRoblox(card);

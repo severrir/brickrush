@@ -310,6 +310,8 @@
 
   function attachmentPreview(url) {
     if (!url) return '';
+    // only ever render http/https links — block javascript:/data: etc.
+    if (!/^https?:\/\//i.test(String(url))) return '';
     const u = esc(url);
     const isImg = /\.(png|jpe?g|gif|webp|avif|svg)(\?|$)/i.test(url);
     if (isImg) return `<a class="cm-att-prev" href="${u}" target="_blank" rel="noopener"><img src="${u}" alt="attachment preview" loading="lazy" onerror="this.closest('.cm-att-prev').classList.add('cm-att-prev--broken')" /><span class="cm-att-prev__open">↗ Open</span></a>`;

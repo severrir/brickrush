@@ -10,6 +10,16 @@
   const DEMAND_KEY = 'brickrush_demand';
   const BANS_KEY = 'brickrush_bans';
   const ADMINS_KEY = 'brickrush_admins';
+  const PV_KEY = 'brickrush_pageviews';
+  const VID_KEY = 'brickrush_visitor_id';
+
+  // A stable per-browser id so visitor counts mean "people", not "page loads".
+  function visitorId() {
+    let v = null;
+    try { v = localStorage.getItem(VID_KEY); if (!v) { v = 'v-' + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem(VID_KEY, v); } }
+    catch (e) { v = 'v-anon'; }
+    return v;
+  }
 
   const DEFAULT_DEMAND = { scripter: 'open', modeler_animator: 'open', uiux: 'open' };
 
@@ -286,6 +296,46 @@
       }
       const all = await this.listApplications();
       return all.find(a => a.discord_id === discordId) || null;
+    },
+
+    /* ---- Delete / wipe applications (owner/admin) ---- */
+    async deleteApplication(id) {
+      if (sb) { const { error } = await sb.from('applications').delete().eq('id', id); if (error) return { error: error.message }; return { ok: true }; }
+      writeLocal(APPS_KEY, readLocal(APPS_KEY, []).filter(a => a.id !== id)); return { ok: true };
+    },
+    async wipeApplications() {
+      if (sb) {
+        const { error } = await sb.from('applications').delete().not('id', 'is', null);
+        if (error) return { error: error.message }; return { ok: true };
+      }
+      writeLocal(APPS_KEY, []); return { ok: true };
+    },
+
+    /* ---- Visitor analytics ---- */
+    async trackView(path) {
+      const rec = { path: String(path || location.pathname).slice(0, 200), visitor_id: visitorId() };
+      if (sb) { try { await sb.from('page_views').insert(rec); } catch (e) {} return; }
+      const pv = readLocal(PV_KEY, []);
+      pv.push({ ...rec, created_at: new Date().toISOString() });
+      if (pv.length > 5000) pv.splice(0, pv.length - 5000);
+      writeLocal(PV_KEY, pv);
+    },
+    async visitorStats() {
+      if (sb) { const { data, error } = await sb.rpc('visitor_stats'); if (error) throw error; return data || {}; }
+      const pv = readLocal(PV_KEY, []);
+      const day = (d) => new Date(d).toISOString().slice(0, 10);
+      const today = day(Date.now());
+      const weekAgo = Date.now() - 7 * 864e5;
+      const uniq = (arr) => new Set(arr.map(r => r.visitor_id)).size;
+      const byDay = {};
+      pv.filter(r => new Date(r.created_at) > Date.now() - 14 * 864e5).forEach(r => { (byDay[day(r.created_at)] = byDay[day(r.created_at)] || new Set()).add(r.visitor_id); });
+      return {
+        today_people: uniq(pv.filter(r => day(r.created_at) === today)),
+        week_people: uniq(pv.filter(r => new Date(r.created_at) > weekAgo)),
+        total_people: uniq(pv),
+        total_views: pv.length,
+        days: Object.keys(byDay).sort().map(d => ({ d, n: byDay[d].size })),
+      };
     },
   };
 

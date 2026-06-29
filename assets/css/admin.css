@@ -229,3 +229,13 @@ kbd { font-family: var(--font-mono); font-size: 0.72rem; background: var(--surfa
   background: rgba(255,194,75,0.1); border: 1px solid rgba(255,194,75,0.35); border-radius: var(--r-md);
   font-size: 0.84rem; color: var(--amber); }
 .demo-banner b { color: #ffd987; }
+
+/* ---- Visitor analytics ---- */
+.visitor-panel { margin-bottom: 1.6rem; }
+.visitor-panel h3 { margin-bottom: 1rem; }
+.visitor-grid { display: grid; grid-template-columns: repeat(4, 1fr) 1.6fr; gap: 0.9rem; align-items: stretch; }
+.vstat { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-md); padding: 0.9rem 1rem; display: flex; flex-direction: column; gap: 0.25rem; justify-content: center; }
+.vstat__n { font-family: var(--font-display); font-weight: 800; font-size: 1.7rem; line-height: 1; }
+.vstat__l { font-size: 0.72rem; color: var(--text-faint); font-family: var(--font-mono); letter-spacing: 0.04em; }
+.vstat--spark .spark { margin-top: 0.5rem; }
+@media (max-width: 760px) { .visitor-grid { grid-template-columns: repeat(2, 1fr); } .vstat--spark { grid-column: 1 / -1; } }

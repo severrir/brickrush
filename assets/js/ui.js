@@ -213,5 +213,7 @@
   document.addEventListener('DOMContentLoaded', async () => {
     if (window.Auth && window.Auth.init) { try { await window.Auth.init(); } catch (e) {} }
     wireLinks(); nav(); reveals(); counters(); soundToggle(); cursor(); authNav(); liteToggle(); cardSpotlight();
+    // record a visit once per page load (skips the admin panel itself)
+    try { if (window.Store && window.Store.trackView && !/admin\.html$/.test(location.pathname)) window.Store.trackView(location.pathname); } catch (e) {}
   });
 })();
