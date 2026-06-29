@@ -237,6 +237,21 @@
     } catch (e) { return true; }
   }
 
+  /* ---------- Require the applicant to be in the Roblox group ---------- */
+  const robloxGroupCache = {};
+  async function verifyRobloxGroup(username) {
+    if (!username) return { member: false, found: false };
+    if (!window.SB) return { member: true, found: true };  // demo / no backend → don't block
+    if (robloxGroupCache[username] !== undefined) return robloxGroupCache[username];
+    try {
+      const { data } = await window.SB.functions.invoke('verify-roblox-group', { body: { username, groupId: CFG.robloxGroupId } });
+      // fail open if the API/our function errored — never hard-block on our outage
+      const res = (!data || data.error) ? { member: true, found: true, failopen: true } : data;
+      robloxGroupCache[username] = res;
+      return res;
+    } catch (e) { return { member: true, found: true, failopen: true }; }
+  }
+
   function showStatus(status, when, message, reviewerName, reviewerAvatar) {
     $('#form-wrap').classList.add('hidden');
     $('.stepper').classList.add('hidden');
@@ -326,6 +341,10 @@
       return;
     }
     await renderRoles();
+    const gh = $('#roblox-group-hint');
+    if (gh && CFG.requireRobloxGroup && CFG.robloxGroupUrl) {
+      gh.innerHTML = `Required: you must be a member of our <a href="${escapeHtml(CFG.robloxGroupUrl)}" target="_blank" rel="noopener">Roblox group</a> to apply.`;
+    }
     wirePills('#exp-group', 'experience', '#exp-error');
     wirePills('#avail-group', 'availability', '#avail-error');
     $('#form-wrap').addEventListener('input', saveDraft);
@@ -354,15 +373,26 @@
     $('#s3-next').addEventListener('click', async () => {
       if (!validateStep(3)) return;
       const btn = $('#s3-next'), rob = $('#f-roblox'), orig = btn.textContent;
+      const showRobloxErr = (msg) => {
+        setInvalid(rob, true);
+        const err = rob.closest('.field').querySelector('.error'); if (err) err.textContent = msg;
+        if (window.Sound) window.Sound.play('error');
+      };
       btn.disabled = true; btn.textContent = 'Checking…';
       const ok = await verifyRoblox(rob.value.trim());
-      btn.disabled = false; btn.textContent = orig;
-      if (!ok) {
-        setInvalid(rob, true);
-        const err = rob.closest('.field').querySelector('.error'); if (err) err.textContent = 'We couldn’t find that Roblox account — check the username.';
-        if (window.Sound) window.Sound.play('error');
-        return;
+      if (!ok) { btn.disabled = false; btn.textContent = orig; showRobloxErr('We couldn’t find that Roblox account — check the username.'); return; }
+      // mandatory: must be in the BRICK RUSH Roblox group
+      if (CFG.requireRobloxGroup && window.SB) {
+        const g = await verifyRobloxGroup(rob.value.trim());
+        if (g && g.found === false) { btn.disabled = false; btn.textContent = orig; showRobloxErr('We couldn’t find that Roblox account — check the username.'); return; }
+        if (g && g.member === false) {
+          btn.disabled = false; btn.textContent = orig;
+          showRobloxErr('Join the BRICK RUSH Roblox group first, then retry.');
+          window.toast && window.toast('You must join the BRICK RUSH Roblox group before applying.', 'error');
+          return;
+        }
       }
+      btn.disabled = false; btn.textContent = orig;
       capture(3); goTo(4);
     });
     $('#f-roblox')?.addEventListener('input', () => {
